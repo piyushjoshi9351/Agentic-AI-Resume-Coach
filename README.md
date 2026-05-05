@@ -1,6 +1,6 @@
 # AI Resume & Job Coach - Backend API
 
-A production-grade multi-agent AI system built with LangGraph + Google Gemini + FastAPI for intelligent resume analysis and career coaching.
+A production-grade multi-agent AI system built with LangGraph + FastAPI for intelligent resume analysis and career coaching. Gemini is optional; local fallback mode keeps the app usable without an API key.
 
 ## Project Overview
 
@@ -16,7 +16,7 @@ The backend is a FastAPI application that orchestrates a multi-agent pipeline us
 ```
 backend/
 ├── main.py              # FastAPI app with /analyze endpoint
-├── agents.py            # 4 agent functions using Gemini 1.5 Flash
+├── agents.py            # 4 agent functions with Gemini/local fallback support
 ├── graph.py             # LangGraph StateGraph orchestration
 ├── .env                 # Environment variables (GOOGLE_API_KEY)
 ├── __init__.py          # Package initialization
@@ -28,7 +28,7 @@ backend/
 ### 1. Prerequisites
 
 - Python 3.10 or higher
-- Google API Key with Gemini access
+- Google API Key only if you want Gemini mode; local fallback works without it
 - pip package manager
 
 ### 2. Install Dependencies

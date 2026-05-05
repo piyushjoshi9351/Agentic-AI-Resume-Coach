@@ -73,14 +73,30 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+def _load_cors_origins() -> list[str]:
+    raw_origins = os.getenv("CORS_ORIGINS", "")
+    origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
+    frontend_url = os.getenv("FRONTEND_URL", "").strip()
+    if frontend_url and frontend_url not in origins:
+        origins.append(frontend_url)
+
+    if not origins:
+        origins = [
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174",
+        ]
+
+    return origins
+
+
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173", "http://localhost:5174", "http://localhost:3000",
-        "http://127.0.0.1:5173", "http://127.0.0.1:5174",
-        "http://127.0.0.1:8000"
-    ],
+    allow_origins=_load_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

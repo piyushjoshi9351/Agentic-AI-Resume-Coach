@@ -25,6 +25,7 @@ class Settings:
     ]
     
     # Google Gemini Configuration
+    AI_PROVIDER = os.getenv("AI_PROVIDER", "local").lower()
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     GEMINI_MODEL = "gemini-1.5-flash"
     GEMINI_TEMPERATURE = 0.7
@@ -48,10 +49,10 @@ class Settings:
     @classmethod
     def validate(cls):
         """Validate required settings"""
-        if not cls.GOOGLE_API_KEY:
+        if cls.AI_PROVIDER == "gemini" and not cls.GOOGLE_API_KEY:
             raise ValueError(
                 "GOOGLE_API_KEY environment variable not set. "
-                "Please set it in your .env file or environment."
+                "Please set it in your .env file or environment, or switch AI_PROVIDER=local."
             )
         return True
 
