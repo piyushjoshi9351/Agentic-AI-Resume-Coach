@@ -1,247 +1,215 @@
-# AI Resume & Job Coach - Backend API
+# 🚀 AI Resume & Job Coach 🤖
 
-A production-grade multi-agent AI system built with LangGraph + FastAPI for intelligent resume analysis and career coaching. Gemini is optional; local fallback mode keeps the app usable without an API key.
+### Land Interviews Faster with a Multi-Agent Career Intelligence System
 
-## Project Overview
+![Banner](https://img.shields.io/badge/AI%20Resume%20%26%20Job%20Coach-Multi--Agent%20Career%20Engine-7c3aed?style=for-the-badge)
 
-The backend is a FastAPI application that orchestrates a multi-agent pipeline using LangGraph:
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-Orchestration-111827)
+![Google Gemini](https://img.shields.io/badge/Google%20Gemini%20%2F%20Local-Fallback-4285F4?logo=google&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=111827)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 
-1. **Resume Analyzer Agent** - Extracts skills, experience, education, strengths, and weaknesses
-2. **Job Matcher Agent** - Calculates ATS match score and identifies skill gaps
-3. **Cover Letter Agent** - Generates personalized 4-paragraph cover letters
-4. **Interview Coach Agent** - Creates 8 interview questions with comprehensive answers
+AI Resume & Job Coach is a full-stack application that analyzes resumes against job descriptions using a coordinated 4-agent pipeline.
+It combines LangGraph orchestration, FastAPI APIs, and a dark-mode React UI.
+The app delivers ATS match scoring, skill-gap insights, personalized cover letters, and interview coaching in one workflow.
+When Gemini is unavailable or disabled, the backend uses deterministic local fallback logic so the app still returns useful output.
 
-## Project Structure
+## ✨ How It Works
+
+### Multi-Agent Pipeline (ASCII Diagram)
 
 ```
-backend/
-├── main.py              # FastAPI app with /analyze endpoint
-├── agents.py            # 4 agent functions with Gemini/local fallback support
-├── graph.py             # LangGraph StateGraph orchestration
-├── .env                 # Environment variables (GOOGLE_API_KEY)
-├── __init__.py          # Package initialization
-└── README.md            # This file
+[Resume PDF + Job Description]
+             |
+             v
+   [Agent 1: Resume Analyzer]
+             |
+             v
+     [Agent 2: Job Matcher]
+             |
+             v
+   [Agent 3: Cover Letter Writer]
+             |
+             v
+    [Agent 4: Interview Coach]
+             |
+             v
+[ATS Score + Skill Gaps + Cover Letter + Interview Prep]
 ```
 
-## Setup Instructions
+### Agent Responsibilities
+
+| Agent | Role | Output |
+|---|---|---|
+| Agent 1 | Resume Analyzer | Skills, experience, education, strengths, weaknesses |
+| Agent 2 | Job Matcher | ATS score, matched skills, missing skills, fit recommendation |
+| Agent 3 | Cover Letter Writer | 4-paragraph tailored cover letter |
+| Agent 4 | Interview Coach | 8 structured interview questions with strong answer frameworks |
+
+## 🌟 Features
+
+- 📄 Resume PDF parsing and structured intelligence extraction
+- 🎯 ATS match scoring with explainable fit signals
+- 🧩 Skill gap analysis with actionable recommendations
+- ✍️ Personalized cover letter generation
+- 🎤 Interview prep with technical, behavioral, role-specific, and tricky questions
+- ⚡ Multi-agent orchestration powered by LangGraph
+- 🖥️ Premium responsive React UI with rich animations
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Python, JavaScript |
+| Backend API | FastAPI, Uvicorn |
+| AI Orchestration | LangGraph |
+| LLM | Google Gemini or local fallback |
+| AI SDK | langchain-google-genai, langchain-core |
+| PDF Processing | pypdf |
+| Frontend | React 18, Vite |
+| UI Styling | Tailwind CSS, Lucide Icons |
+
+## ⚙️ Setup Instructions
 
 ### 1. Prerequisites
 
-- Python 3.10 or higher
-- Google API Key only if you want Gemini mode; local fallback works without it
-- pip package manager
+- Python 3.10+
+- Node.js 18+
+- npm 9+
+- Google API key only if you want Gemini mode; local fallback works without it
 
-### 2. Install Dependencies
+### 2. Clone Repository
+
+```bash
+git clone https://github.com/piyushjoshi9351/Agentic-AI-Resume-Coach.git
+cd Agentic-AI-Resume-Coach
+```
+
+### 3. Backend Setup
+
+```bash
+cd backend
+python -m venv .venv
+```
+
+Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+macOS/Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Install backend dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment
-
-Create a `.env` file in the `backend/` directory:
+Create environment file in backend folder. Never commit your real API keys or secrets:
 
 ```env
 GOOGLE_API_KEY=your_google_api_key_here
+JWT_SECRET_KEY=replace_with_a_long_random_secret
+AI_PROVIDER=local
 ```
 
-Get your API key from: https://makersuite.google.com/app/apikey
-
-### 4. Run the Server
+### 4. Frontend Setup
 
 ```bash
-# From the backend directory
+cd ../frontend
+npm install
+```
+
+### 5. Run the App
+
+Start backend (terminal 1):
+
+```bash
+cd backend
 python main.py
 ```
 
-Or using uvicorn directly:
+Start frontend (terminal 2):
 
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd frontend
+npm run dev
 ```
 
-The API will be available at: `http://localhost:8000`
+Open the frontend at http://localhost:5173 or the next available Vite port if 5173 is busy.
 
-## API Documentation
+## 🚀 Deployment
 
-### Endpoints
+### Recommended: Render
 
-#### Health Check
-- **GET** `/health`
-- **Response**: `{"status": "healthy", "service": "AI Resume & Job Coach API"}`
+This repo includes a `render.yaml` blueprint for a live backend and a separate static frontend.
 
-#### Analyze Resume and Job
-- **POST** `/analyze`
-- **Accepts**:
-  - `resume`: PDF file (multipart/form-data)
-  - `job_description`: String (form field)
-- **Returns**: 
-  ```json
-  {
-    "resume_analysis": {
-      "skills": {...},
-      "experience": [...],
-      "education": [...],
-      "strengths": [...],
-      "weaknesses": [...],
-      "overall_assessment": {...}
-    },
-    "job_match": {
-      "ats_match_score": 85,
-      "match_level": "Strong Match",
-      "matching_skills": [...],
-      "missing_skills": [...],
-      "recommendation": "..."
-    },
-    "cover_letter": "...",
-    "interview_questions": [...]
-  }
-  ```
+1. Push the repo to GitHub.
+2. Create a new Render blueprint from `render.yaml`.
+3. Set `VITE_API_BASE_URL` on the frontend to your deployed backend URL.
+4. Set `CORS_ORIGINS` or `FRONTEND_URL` on the backend to your deployed frontend URL.
+5. Use managed PostgreSQL in production. SQLite is for local development only.
 
-### API Interactive Documentation
+### Environment Variables
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- Backend: `AI_PROVIDER`, `JWT_SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `GOOGLE_API_KEY` if Gemini is enabled
+- Frontend: `VITE_API_BASE_URL`
 
-### CORS Configuration
+## 📸 Screenshots
 
-The API is configured to accept requests from:
-- `http://localhost:5173` (Vite dev server)
-- `http://localhost:3000` (React dev server)
-- `http://127.0.0.1:5173`
+> Add your screenshots after the first demo run.
 
-Add additional origins in `main.py` if needed.
+- Hero + input screen: `docs/screenshots/hero-input.png`
+- Agent progress loading: `docs/screenshots/agent-progress.png`
+- Resume analysis tab: `docs/screenshots/resume-analysis.png`
+- ATS match tab: `docs/screenshots/job-match.png`
+- Cover letter tab: `docs/screenshots/cover-letter.png`
+- Interview prep tab: `docs/screenshots/interview-prep.png`
 
-## Agent Details
+## 🗂️ Project Structure
 
-### Resume Analyzer Agent
-- Extracts structured information from resumes
-- Identifies technical and soft skills
-- Analyzes work experience and achievements
-- Evaluates education and certifications
-- Provides strengths and weaknesses assessment
-
-### Job Matcher Agent
-- Calculates ATS (Applicant Tracking System) match score (0-100)
-- Identifies which job requirements are met
-- Lists missing skills and experience gaps
-- Assesses career progression fit
-- Provides hiring recommendation
-
-### Cover Letter Agent
-- Generates personalized 4-paragraph cover letters
-- References specific resume achievements
-- Shows understanding of company mission
-- Professional tone with strong call-to-action
-- Tailored to job description requirements
-
-### Interview Coach Agent
-- Creates 8 interview questions (tailored to resume + job)
-  - 3 Technical questions
-  - 2 Behavioral questions (STAR format)
-  - 2 Role-specific questions
-  - 1 Tricky/edge-case question
-- Provides comprehensive answer frameworks
-- Includes strategic tips and common mistakes to avoid
-
-## Error Handling
-
-The API includes comprehensive error handling:
-
-- **Invalid PDF**: Returns 400 with error message
-- **Empty resume/job description**: Returns 400 with validation error
-- **API failures**: Returns 500 with error description
-- **Global exception handler**: Catches and logs unhandled errors
-
-## Logging
-
-Logs are configured to show:
-- Agent execution status
-- Error messages with full stack traces
-- Processing timestamps
-- Request information
-
-View logs in console output when running the server.
-
-## Performance Considerations
-
-- **Sequential Agent Execution**: Agents run sequentially, with each agent using output from previous agents
-- **PDF Parsing**: Handles multi-page PDFs efficiently
-- **Gemini API**: Uses 1.5 Flash model for speed and cost-effectiveness
-- **JSON Response Size**: Complete analysis typically returns 5-15KB of data
-
-## Development
-
-### Running Tests
-
-```bash
-pytest tests/
+```text
+ai-resume-coach/
+├── backend/
+│   ├── main.py
+│   ├── agents.py
+│   ├── graph.py
+│   ├── config.py
+│   ├── requirements.txt
+│   └── .env
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── services/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   └── tailwind.config.js
+├── README.md
+└── .gitignore
 ```
 
-### Code Quality
+## 💎 Why This Project Is Unique
 
-The codebase follows:
-- PEP 8 style guidelines
-- Type hints throughout
-- Comprehensive docstrings
-- Proper error handling and logging
+- It demonstrates true multi-agent coordination instead of a single prompt chain.
+- It fuses product UX and AI engineering into a deployable full-stack system.
+- It outputs recruiter-relevant artifacts, not just generic text generation.
+- It is portfolio-ready for AI Engineer, Full-Stack AI, and Applied LLM roles.
 
-### Adding Custom Agents
+## 🔒 Security Notes
 
-To add new agents:
+- Real secrets belong in `backend/.env` and should stay out of Git.
+- Use `.env.example` as the template for new environments.
+- If Gemini quota is unavailable, set `AI_PROVIDER=local` to keep the app usable.
 
-1. Create a new agent function in `agents.py` with signature: `def agent_name(state: dict) -> dict`
-2. Add a node in `graph.py`: `workflow.add_node("agent_name", agent_name)`
-3. Add edges to connect to the pipeline
+## 📄 License
 
-## Dependencies
-
-Key dependencies:
-- **FastAPI**: Modern async web framework
-- **Uvicorn**: ASGI server
-- **LangChain**: LLM framework
-- **LangGraph**: Orchestration framework
-- **pypdf**: PDF text extraction
-- **google-generativeai**: Gemini API access
-- **pydantic**: Data validation
-
-## Troubleshooting
-
-### "GOOGLE_API_KEY not set" Error
-- Ensure `.env` file exists in backend directory
-- Check that GOOGLE_API_KEY is correctly set
-- Restart the server after updating .env
-
-### PDF Extraction Issues
-- Ensure PDF is valid and not corrupted
-- Some PDFs with images require OCR (not supported yet)
-- Try extracting text manually to verify content
-
-### Timeout Issues
-- Agent processing may take 30-60 seconds for complete analysis
-- Increase timeout in frontend if needed
-- Monitor API logs for performance bottlenecks
-
-## Production Deployment
-
-For production deployment:
-
-1. Use environment variables (not .env file)
-2. Set appropriate security headers
-3. Use a production ASGI server (Gunicorn + Uvicorn)
-4. Enable HTTPS
-5. Add API rate limiting
-6. Set up monitoring and alerting
-
-Example production startup:
-```bash
-gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker
-```
-
-## License
-
-Proprietary - All rights reserved
-
-## Support
-
-For issues or questions, contact the development team.
+This project is licensed under the MIT License.
