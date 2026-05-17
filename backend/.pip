@@ -1,0 +1,9 @@
+[global]
+# Force binary packages only, no source builds
+only-binary = :all:
+
+# Prefer wheels from PyPI
+prefer-binary = true
+
+# Use faster PyPI mirror
+index-url = https://pypi.org/simple/
