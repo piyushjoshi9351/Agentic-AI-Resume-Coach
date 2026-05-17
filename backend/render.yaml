@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: ai-resume-coach-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install --only-binary :all: -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
+    
+    envVars:
+      - key: AI_PROVIDER
+        value: local
+      - key: JWT_EXPIRE_MINUTES
+        value: "120"
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-resume-coach-db
+          property: connectionString
+      # Add these via Render dashboard for security:
+      # - GOOGLE_API_KEY (optional)
+      # - JWT_SECRET_KEY (required - generate a random key)
+
+databases:
+  - name: ai-resume-coach-db
+    plan: free
+    ipAllowList: []  # Allow all IPs (restrictive in production)

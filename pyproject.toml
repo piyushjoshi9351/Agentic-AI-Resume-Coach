@@ -1,0 +1,18 @@
+# Render Build Configuration
+
+# Use prebuilt wheels only, skip source builds
+[build-system]
+requires = ["pip>=22.0"]
+build-backend = "pip"
+
+# Skip binary extensions during build
+[tool.pip]
+only-binary = [
+    "pydantic",
+    "psycopg2-binary", 
+    "passlib",
+    "python-jose",
+    "reportlab",
+    "httpx",
+    "requests"
+]
