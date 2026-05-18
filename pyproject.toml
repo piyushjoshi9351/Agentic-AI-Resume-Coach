@@ -9,7 +9,7 @@ build-backend = "pip"
 [tool.pip]
 only-binary = [
     "pydantic",
-    "psycopg2-binary", 
+    "pg8000",
     "passlib",
     "python-jose",
     "reportlab",
