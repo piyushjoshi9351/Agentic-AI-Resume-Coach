@@ -58,6 +58,7 @@ class JobMatchSkillItem(BaseModel):
     importance: str = ""
     present_in_resume: bool = False
     proficiency_evidence: str = ""
+    similarity_score: float = 0.0
 
 
 class JobMissingSkillItem(BaseModel):
@@ -80,11 +81,24 @@ class JobImprovementSuggestion(BaseModel):
     confidence: float = Field(default=0.7, ge=0.0, le=1.0)
 
 
+class ATSScoreBreakdown(BaseModel):
+    skill_score: float = 0.0
+    experience_score: float = 0.0
+    project_score: float = 0.0
+    education_score: float = 0.0
+    semantic_similarity_percent: float = 0.0
+    coverage_percent: float = 0.0
+    weights: dict[str, float] = Field(default_factory=dict)
+    weighted_contributions: dict[str, float] = Field(default_factory=dict)
+    final_score: float = 0.0
+
+
 class JobMatchModel(BaseModel):
     ats_match_score: float = 0.0
     match_level: str = ""
     matching_skills: list[JobMatchSkillItem] = Field(default_factory=list)
     missing_skills: list[JobMissingSkillItem] = Field(default_factory=list)
+    score_breakdown: ATSScoreBreakdown = Field(default_factory=ATSScoreBreakdown)
     experience_analysis: JobExperienceAnalysis = Field(default_factory=JobExperienceAnalysis)
     career_progression_fit: str = ""
     recommendation: str = ""

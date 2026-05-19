@@ -13,6 +13,7 @@ from ai_schemas import (
     CoverLetterModel,
   InterviewQuestionsModel,
 )
+from ats import compute_ats_score, extract_skills, match_skills, parse_resume_text
 from services.llm_router import llm_router
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,56 @@ GENERAL_STOPWORDS = {
     "using", "work", "working", "with", "within", "your", "our", "their", "this", "that",
     "for", "from", "and", "the", "to", "of", "in", "on", "as", "by", "is", "are", "be",
 }
+
+
+def _unique_preserve_order(items: list[str]) -> list[str]:
+    seen = set()
+    ordered = []
+    for item in items:
+        normalized = _normalize(item)
+        if normalized and normalized not in seen:
+            ordered.append(item)
+            seen.add(normalized)
+    return ordered
+
+
+def _skill_matches_catalog(skill: str, catalog: list[str]) -> bool:
+    normalized_skill = _normalize(skill)
+    normalized_catalog = [_normalize(item) for item in catalog]
+    return any(
+        normalized_skill == item
+        or normalized_skill in item
+        or item in normalized_skill
+        for item in normalized_catalog
+    )
+
+
+def _resume_profile_from_state(resume_text: str, parsed_resume_data: dict | None = None) -> dict:
+    profile = parsed_resume_data or {}
+    if not profile:
+        profile = parse_resume_text(resume_text)
+    return profile
+
+
+def _extract_job_skills(job_description: str, parsed_job_data: dict) -> list[str]:
+    candidates: list[str] = []
+    if isinstance(parsed_job_data.get("skills"), list):
+        candidates.extend(str(skill) for skill in parsed_job_data["skills"])
+    candidates.extend(extract_skills(job_description))
+    return _unique_preserve_order([_normalize(skill) for skill in candidates if skill])
+
+
+def _extract_candidate_years(resume_text: str, parsed_resume_data: dict | None = None) -> float:
+    years = float(_find_years(resume_text))
+    if years:
+        return years
+
+    profile = parsed_resume_data or {}
+    experience_items = profile.get("experience", []) if isinstance(profile, dict) else []
+    if isinstance(experience_items, list) and experience_items:
+        return float(min(max(len(experience_items), 1), 10))
+
+    return 0.0
 
 
 def _normalize(text: str) -> str:
@@ -131,6 +182,35 @@ def _experience_fit_score(years_candidate: int, years_required: int) -> float:
     return max(0.2, years_candidate / years_required)
 
 
+def _project_signal_score(resume_text: str, resume_analysis: dict) -> float:
+    experience_items = resume_analysis.get("experience", []) if isinstance(resume_analysis, dict) else []
+    achievement_count = 0
+    for item in experience_items:
+      if isinstance(item, dict):
+        achievement_count += len(item.get("key_achievements", []) or [])
+
+    project_mentions = len(
+        re.findall(r"\b(project|projects|built|developed|implemented|shipped|launched|delivered)\b", resume_text.lower())
+    )
+
+    score = 35.0 + min(35.0, achievement_count * 8.0) + min(20.0, project_mentions * 4.0)
+    if not achievement_count and not project_mentions:
+        score = 45.0 if resume_text.strip() else 0.0
+    return max(0.0, min(100.0, score))
+
+
+def _education_signal_score(resume_text: str, resume_analysis: dict) -> float:
+    education_items = resume_analysis.get("education", []) if isinstance(resume_analysis, dict) else []
+    if isinstance(education_items, list) and education_items:
+        return min(100.0, 85.0 + min(15.0, len(education_items) * 5.0))
+
+    normalized_text = resume_text.lower()
+    if any(keyword in normalized_text for keyword in ["btech", "b.tech", "bsc", "b.sc", "mtech", "m.tech", "bachelor", "master", "degree"]):
+        return 70.0
+
+    return 55.0 if resume_text.strip() else 0.0
+
+
 def _context_keywords(text: str, limit: int = 12) -> list[str]:
     keywords: list[str] = []
     for raw_word in re.findall(r"[a-zA-Z][a-zA-Z0-9+.#/-]{3,}", text.lower()):
@@ -146,16 +226,20 @@ def _context_keywords(text: str, limit: int = 12) -> list[str]:
     return keywords
 
 
-def _resume_analysis_local(resume_text: str) -> dict:
-    technical = _find_terms(resume_text, TECH_SKILLS)
-    soft = _find_terms(resume_text, SOFT_SKILLS)
+def _resume_analysis_local(resume_text: str, parsed_resume_data: dict | None = None) -> dict:
+    profile = _resume_profile_from_state(resume_text, parsed_resume_data)
+    extracted_skills = profile.get("skills", []) if isinstance(profile, dict) else []
+    extracted_skills = _unique_preserve_order([_normalize(skill) for skill in extracted_skills if skill])
+
+    technical = [skill for skill in extracted_skills if _skill_matches_catalog(skill, TECH_SKILLS)]
+    soft = [skill for skill in extracted_skills if _skill_matches_catalog(skill, SOFT_SKILLS)]
     languages = []
     if "hindi" in resume_text.lower():
         languages.append("Hindi")
     if "english" in resume_text.lower():
         languages.append("English")
 
-    years = _find_years(resume_text)
+    years = int(_extract_candidate_years(resume_text, profile))
     snippets = _sentence_snippets(resume_text, limit=3)
     key_achievements = snippets or ["Demonstrates hands-on experience and project-based work."]
 
@@ -168,10 +252,21 @@ def _resume_analysis_local(resume_text: str) -> dict:
     }
 
     education = []
-    for keyword in ["btech", "b.tech", "bsc", "b.sc", "mtech", "m.tech", "bachelor", "master", "degree"]:
-        if keyword in resume_text.lower():
-            education.append({"degree": "Degree mentioned in resume", "field": "", "institution": "", "graduation_year": "", "gpa": ""})
-            break
+    parsed_education = profile.get("education", []) if isinstance(profile, dict) else []
+    for item in parsed_education[:3]:
+        if isinstance(item, dict):
+            education.append({
+                "degree": item.get("degree", ""),
+                "field": item.get("field", ""),
+                "institution": item.get("institution", ""),
+                "graduation_year": item.get("year", ""),
+                "gpa": item.get("gpa", ""),
+            })
+    if not education:
+        for keyword in ["btech", "b.tech", "bsc", "b.sc", "mtech", "m.tech", "bachelor", "master", "degree"]:
+            if keyword in resume_text.lower():
+                education.append({"degree": "Degree mentioned in resume", "field": "", "institution": "", "graduation_year": "", "gpa": ""})
+                break
 
     strengths = [
         {"strength": "Technical stack includes relevant tools for modern software roles.", "evidence": ", ".join(technical[:5]) or "Resume contains technical keywords."},
@@ -211,51 +306,39 @@ def _resume_analysis_local(resume_text: str) -> dict:
     }
 
 
-def _job_match_local(resume_text: str, job_description: str, parsed_job_data: dict, resume_analysis: dict) -> dict:
-    resume_terms = _find_terms(resume_text, JOB_SKILLS)
-    job_terms = _find_terms(job_description, JOB_SKILLS)
-    if parsed_job_data.get("skills"):
-        job_terms.extend(_normalize(skill) for skill in parsed_job_data.get("skills", []))
+def _job_match_local(
+    resume_text: str,
+    job_description: str,
+    parsed_job_data: dict,
+    resume_analysis: dict,
+    parsed_resume_data: dict | None = None,
+) -> dict:
+    parsed_resume_data = parsed_resume_data if isinstance(parsed_resume_data, dict) else {}
+    resume_profile = _resume_profile_from_state(resume_text, parsed_resume_data)
+    resume_skills = _unique_preserve_order([_normalize(skill) for skill in (resume_profile.get("skills", []) or []) if skill])
+    job_terms = _extract_job_skills(job_description, parsed_job_data)
+    if not job_terms:
+        job_terms = _unique_preserve_order([_normalize(skill) for skill in _find_terms(job_description, JOB_SKILLS)])
 
-    resume_context = _context_keywords(resume_text)
-    job_context = _context_keywords(job_description)
-
-    keyword_coverage, matching, missing = _weighted_skill_coverage(resume_terms, job_terms)
-    context_overlap = len(set(resume_context) & set(job_context)) / max(len(job_context), 1)
-
+    matches = match_skills(resume_skills, job_terms)
     years_required = _find_years(job_description)
-    years_candidate = _find_years(resume_text)
-    experience_score = _experience_fit_score(years_candidate, years_required)
-
-    breadth_score = min(len(matching) / max(len(job_terms), 1), 1.0) if job_terms else 0.0
-    completeness_score = min(len(resume_terms) / max(len(job_terms), 1), 1.0) if job_terms else 0.0
-
-    score = (
-        100
-        * (
-            0.42 * keyword_coverage
-            + 0.20 * context_overlap
-            + 0.18 * experience_score
-            + 0.12 * breadth_score
-            + 0.08 * completeness_score
-        )
+    years_candidate = int(_extract_candidate_years(resume_text, resume_profile))
+    project_score = _project_signal_score(resume_text, resume_analysis)
+    education_score = _education_signal_score(resume_text, resume_analysis)
+    score_data = compute_ats_score(
+        matches,
+        len(job_terms),
+        experience_years=float(years_candidate) if years_candidate else None,
+        experience_target_years=float(years_required) if years_required else None,
+        project_score=project_score,
+        education_score=education_score,
     )
+    score = round(score_data.get("score", 0.0), 2)
 
-    high_priority_missing = [term for term in missing if term in HIGH_PRIORITY_JOB_SKILLS]
-    score -= min(15.0, len(high_priority_missing) * 3.5)
-    if job_context:
-        score -= min(8.0, (1.0 - context_overlap) * 8.0)
-
-    resume_weaknesses = []
-    if isinstance(resume_analysis, dict):
-        raw_weaknesses = resume_analysis.get("weaknesses", [])
-        if isinstance(raw_weaknesses, list):
-            resume_weaknesses = raw_weaknesses
-    score -= min(10.0, len(resume_weaknesses) * 4.0)
-
-    if score > 96.0:
-        score = 96.0 - min(4.0, (1.0 - context_overlap) * 4.0)
-    score = round(max(0.0, min(100.0, score)), 2)
+    matched_job_terms = _unique_preserve_order([match[1] for match in matches])
+    matching = matched_job_terms
+    missing = [term for term in job_terms if term not in matched_job_terms]
+    context_overlap = len(set(_context_keywords(resume_text)) & set(_context_keywords(job_description))) / max(len(_context_keywords(job_description)), 1)
 
     if score >= 85:
         match_level = "Strong Match"
@@ -272,7 +355,8 @@ def _job_match_local(resume_text: str, job_description: str, parsed_job_data: di
             "skill": skill,
             "importance": "high" if skill in HIGH_PRIORITY_JOB_SKILLS else "medium",
             "present_in_resume": True,
-            "proficiency_evidence": f"Found '{skill}' in resume.",
+            "proficiency_evidence": f"Semantic match found for '{skill}' in resume text.",
+            "similarity_score": round(next((match[2] for match in matches if match[1] == skill), 0.0), 2),
         }
         for skill in sorted(matching, key=lambda term: (_term_weight(term), term), reverse=True)[:8]
     ]
@@ -315,6 +399,7 @@ def _job_match_local(resume_text: str, job_description: str, parsed_job_data: di
     return {
         "ats_match_score": score,
         "match_level": match_level,
+        "score_breakdown": score_data.get("score_breakdown", {}),
         "matching_skills": matching_skills,
         "missing_skills": missing_skills,
         "experience_analysis": {
@@ -324,11 +409,11 @@ def _job_match_local(resume_text: str, job_description: str, parsed_job_data: di
             "analysis": "Candidate experience appears aligned with the target role based on the resume and job description." if is_fit else "Candidate may need to show stronger proof of experience for this role.",
         },
         "career_progression_fit": "Looks aligned for a growth-focused role with room to emphasize impact.",
-        "recommendation": f"{match_level}: tailor the resume and highlight the skills that are most relevant to the job.",
+        "recommendation": f"{match_level}: tailor the resume and highlight the semantic matches that are most relevant to the job.",
         "strengths_for_role": sorted(matching, key=lambda term: (_term_weight(term), term), reverse=True)[:5],
         "gaps_to_address": sorted(missing, key=lambda term: (_term_weight(term), term), reverse=True)[:5],
         "improvement_suggestions": suggestions,
-        "confidence": 0.76,
+        "confidence": float(score_data.get("semantic_match_percent", 0.0)) / 100 if score_data.get("semantic_match_percent") else 0.76,
     }
 
 
@@ -345,12 +430,26 @@ def _cover_letter_local(resume_text: str, job_description: str, parsed_job_data:
     )
 
 
-def _interview_questions_local(resume_text: str, job_description: str, resume_analysis: dict, job_match: dict) -> list[dict]:
+def _interview_questions_local(
+    resume_text: str,
+    job_description: str,
+    resume_analysis: dict,
+    job_match: dict,
+    user_history: list | None = None,
+) -> list[dict]:
     tech = resume_analysis.get("skills", {}).get("technical", []) or _find_terms(resume_text, TECH_SKILLS)
     top_skill = tech[0] if tech else "Python"
     role_terms = job_match.get("strengths_for_role", []) or _find_terms(job_description, JOB_SKILLS)
     role_focus = role_terms[0] if role_terms else "the role"
     company_context = "the team and its product goals"
+    ats_gaps = job_match.get("gaps_to_address", []) or [skill.get("skill") for skill in job_match.get("missing_skills", []) if isinstance(skill, dict)]
+    ats_gaps = [gap for gap in ats_gaps if gap]
+    history_signals = []
+    if isinstance(user_history, list):
+        for item in user_history[:3]:
+            if isinstance(item, dict):
+                history_signals.append(str(item.get("job_title") or item.get("role") or item.get("resume_filename") or "").strip())
+    history_hint = history_signals[0] if history_signals else "prior project experience"
 
     questions = [
         {
@@ -440,7 +539,7 @@ def _interview_questions_local(resume_text: str, job_description: str, resume_an
         {
             "question_number": 8,
             "type": "tricky",
-            "question": "Tell me about a time you made a mistake and how you handled it.",
+            "question": f"Tell me about a time you made a mistake and how you handled it while working on {history_hint}.",
             "why_asked": "To assess accountability and learning.",
             "answer_framework": "Admit the mistake, explain the fix, and share the lesson learned.",
             "strong_answer_example": "I found the issue, communicated early, fixed it, and changed my process to prevent it happening again.",
@@ -450,6 +549,23 @@ def _interview_questions_local(resume_text: str, job_description: str, resume_an
             "tips": "Be honest and show maturity.",
         },
     ]
+
+    if ats_gaps:
+        for index, gap in enumerate(ats_gaps[:2], start=9):
+            questions.append(
+                {
+                    "question_number": index,
+                    "type": "ATS-gap",
+                    "question": f"Your ATS result shows a gap in {gap}. How would you close that gap quickly and prove it in practice?",
+                    "why_asked": "To test self-awareness and learning velocity against the role's missing skills.",
+                    "answer_framework": "Acknowledge the gap, describe how you'd learn it, and explain how you'd demonstrate it through a project or outcome.",
+                    "strong_answer_example": f"I would build a focused project around {gap}, document what I learned, and show measurable progress within a short timeline.",
+                    "key_points_to_cover": ["acknowledge the gap", "learning plan", "proof of progress"],
+                    "common_mistakes": ["deflecting the gap", "no concrete plan", "only giving theory"],
+                    "follow_up_questions": [f"What would your 2-week plan look like for {gap}?", "How would you prove progress to a hiring manager?"],
+                    "tips": "Use a practical recovery plan, not excuses.",
+                }
+            )
 
     return questions
 
@@ -469,6 +585,9 @@ def resume_analyzer_agent(state: dict) -> dict:
     logger.info("Starting resume analyzer agent")
     
     resume_text = state.get("resume_text", "")
+    parsed_resume_data = state.get("parsed_resume_data", {}) if isinstance(state, dict) else {}
+    if not isinstance(parsed_resume_data, dict):
+        parsed_resume_data = {}
     
     system_prompt = """You are an expert resume analyst and career coach with 20+ years of experience.
 Your task is to provide a comprehensive, structured analysis of the provided resume.
@@ -488,10 +607,15 @@ RESPONSE FORMAT: strict JSON only."""
 
 {resume_text}
 
+Parsed Resume Data Context:
+{json.dumps(parsed_resume_data, indent=2)}
+
 Provide comprehensive structured analysis as JSON."""
 
     if AI_PROVIDER != "gemini":
-        state["resume_analysis"] = _resume_analysis_local(resume_text)
+        resume_analysis = _resume_analysis_local(resume_text, parsed_resume_data)
+        state["resume_analysis"] = resume_analysis
+        state["resume_data"] = resume_analysis
         logger.info("Resume analyzer agent completed successfully using local mode")
         return state
 
@@ -502,6 +626,7 @@ Provide comprehensive structured analysis as JSON."""
         user_prompt=user_message,
         fallback_data=fallback,
     )
+    state["resume_data"] = state["resume_analysis"]
     logger.info("Resume analyzer agent completed successfully")
     return state
 
@@ -524,6 +649,9 @@ def job_matcher_agent(state: dict) -> dict:
     job_description = state.get("job_description", "")
     parsed_job_data = state.get("parsed_job_data", {})
     resume_analysis = state.get("resume_analysis", {})
+    parsed_resume_data = state.get("parsed_resume_data", {}) if isinstance(state, dict) else {}
+    if not isinstance(parsed_resume_data, dict):
+        parsed_resume_data = {}
     
     system_prompt = """You are an ATS (Applicant Tracking System) expert and recruiter with 15+ years of hiring experience.
 Your task is to analyze how well a resume matches a job description.
@@ -552,10 +680,15 @@ Parsed Job Data Context:
 Resume Analysis Context:
 {json.dumps(resume_analysis, indent=2)}
 
+Parsed Resume Data Context:
+{json.dumps(parsed_resume_data, indent=2)}
+
 Perform a detailed ATS and fit analysis. Return valid JSON only."""
 
     if AI_PROVIDER != "gemini":
-        state["job_match"] = _job_match_local(resume_text, job_description, parsed_job_data, resume_analysis)
+        job_match = _job_match_local(resume_text, job_description, parsed_job_data, resume_analysis, parsed_resume_data)
+        state["job_match"] = job_match
+        state["ats_result"] = job_match
         logger.info("Job matcher agent completed successfully using local mode")
         return state
 
@@ -566,6 +699,7 @@ Perform a detailed ATS and fit analysis. Return valid JSON only."""
         user_prompt=user_message,
         fallback_data=fallback,
     )
+    state["ats_result"] = state["job_match"]
     logger.info("Job matcher agent completed successfully")
     return state
 
@@ -586,7 +720,9 @@ def cover_letter_agent(state: dict) -> dict:
     job_description = state.get("job_description", "")
     parsed_job_data = state.get("parsed_job_data", {})
     job_match = state.get("job_match", {})
+    ats_result = state.get("ats_result", job_match)
     resume_analysis = state.get("resume_analysis", {})
+    user_history = state.get("user_history", []) if isinstance(state, dict) else []
     
     system_prompt = """You are a professional executive resume writer and career coach.
 Your task is to write a compelling, personalized cover letter.
@@ -701,6 +837,12 @@ Candidate's Technical Skills:
 Job Requirements Summary:
 {json.dumps(job_match.get("matching_skills", [])[:5], indent=2)}
 
+ATS Result Context:
+{json.dumps(ats_result, indent=2)}
+
+User History Context:
+{json.dumps(user_history[:3] if isinstance(user_history, list) else [], indent=2)}
+
 Parsed Job Data:
 {json.dumps(parsed_job_data, indent=2)}
 
@@ -708,7 +850,7 @@ Generate 8 interview questions (3 technical, 2 behavioral STAR, 2 role-specific,
 Tailor all questions to this specific candidate and role. Return valid JSON only."""
 
     if AI_PROVIDER != "gemini":
-        state["interview_questions"] = _interview_questions_local(resume_text, job_description, resume_analysis, job_match)
+        state["interview_questions"] = _interview_questions_local(resume_text, job_description, resume_analysis, ats_result, user_history)
         logger.info("Interview coach agent completed successfully using local mode")
         return state
 

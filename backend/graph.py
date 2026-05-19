@@ -23,20 +23,28 @@ class AnalysisState(TypedDict, total=False):
     
     Fields:
         resume_text: Raw text extracted from the PDF resume
+        parsed_resume_data: Structured resume profile extracted from the resume text
+        resume_data: Alias for the structured resume analysis used by downstream agents
         job_description: Raw text of the job description
         parsed_job_data: Structured job metadata parsed from URL
         resume_analysis: Structured analysis output from resume_analyzer_agent
         job_match: Job matching analysis from job_matcher_agent
+        ats_result: Alias for the ATS/job match output used by interview and UI layers
         cover_letter: Generated cover letter from cover_letter_agent
         interview_questions: List of interview questions from interview_coach_agent
+        user_history: Prior user analysis records and patterns available for context
     """
     resume_text: str
+    parsed_resume_data: dict
+    resume_data: dict
     job_description: str
     parsed_job_data: dict
     resume_analysis: dict
     job_match: dict
+    ats_result: dict
     cover_letter: str
     interview_questions: list
+    user_history: list
 
 
 def create_analysis_graph():

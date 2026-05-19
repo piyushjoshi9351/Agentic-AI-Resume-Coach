@@ -9,8 +9,14 @@ try:
 except Exception:
     nlp = None
 
-DEGREE_PATTERNS = r"\b(Bachelor|B\.Sc|BSc|Master|M\.Sc|MSc|MBA|PhD|Doctor|Associate)\b"
+DEGREE_PATTERNS = r"\b(Bachelor|B\.Sc|BSc|B\.E|BE|BTech|B\.Tech|Master|M\.Sc|MSc|M\.Tech|MTech|MBA|PhD|Doctor|Associate|BS|MS)\b"
 YEARS_PATTERN = r"(19|20)\d{2}"
+SKILL_PHRASE_PATTERN = re.compile(r"\b[A-Za-z][A-Za-z0-9+#./-]*(?:\s+[A-Za-z0-9][A-Za-z0-9+#./-]*){0,2}\b")
+
+
+def _normalize_phrase(phrase: str) -> str:
+    phrase = re.sub(r"\s+", " ", phrase).strip(" -,:;|\t\n\r")
+    return phrase
 
 
 def extract_text_from_pdf(path: str) -> str:
@@ -26,28 +32,35 @@ def extract_text_from_pdf(path: str) -> str:
 
 def _candidate_skill_phrases(text: str, top_n: int = 80) -> List[str]:
     """Use spaCy to extract noun chunks and entities as candidate skills."""
-    if not nlp:
-        # fallback: return frequent capitalized words / bigrams
-        tokens = re.findall(r"[A-Z][a-zA-Z\-/+]{2,}", text)
-        return list(dict.fromkeys(tokens))[:top_n]
+    candidates: list[str] = []
 
-    doc = nlp(text)
-    phrases = set()
-    for chunk in doc.noun_chunks:
-        # filter long/short chunks
-        tok = chunk.text.strip()
-        if 2 <= len(tok) <= 60:
-            phrases.add(tok)
-    for ent in doc.ents:
-        phrases.add(ent.text.strip())
-    # return in document order
-    ordered = [p for p in (chunk.text.strip() for chunk in doc.noun_chunks) if p in phrases]
+    if not nlp:
+        # fallback: return visible skill-like phrases from the resume text
+        tokens = re.findall(r"[A-Za-z][A-Za-z0-9+#./-]{1,}(?:\s+[A-Za-z0-9][A-Za-z0-9+#./-]{1,}){0,2}", text)
+        candidates.extend(tokens)
+    else:
+        doc = nlp(text)
+        for chunk in doc.noun_chunks:
+            candidates.append(chunk.text)
+        for ent in doc.ents:
+            candidates.append(ent.text)
+
+    for match in SKILL_PHRASE_PATTERN.finditer(text):
+        candidates.append(match.group(0))
+
     seen = set()
     out = []
-    for p in ordered:
-        if p not in seen:
-            out.append(p)
-            seen.add(p)
+    stop_terms = {"experience", "education", "summary", "profile", "skills", "project", "projects"}
+    for raw_phrase in candidates:
+        phrase = _normalize_phrase(raw_phrase)
+        if not phrase:
+            continue
+        lowered = phrase.lower()
+        if lowered in stop_terms:
+            continue
+        if lowered not in seen and len(phrase) <= 60:
+            out.append(phrase)
+            seen.add(lowered)
     return out[:top_n]
 
 
@@ -84,6 +97,32 @@ def extract_experience(text: str) -> List[Dict[str, Any]]:
     return experiences
 
 
+def extract_skills(text: str) -> List[str]:
+    """Extract a normalized list of skill-like phrases from resume or job text."""
+    skills = _candidate_skill_phrases(text)
+    return [skill for skill in skills if any(char.isalpha() for char in skill)]
+
+
+def parse_resume_text(text: str) -> Dict[str, Any]:
+    """Parse raw resume text into structured sections."""
+    candidates = extract_skills(text)
+    education = extract_education(text)
+    experience = extract_experience(text)
+
+    skills = []
+    for s in candidates:
+        s_clean = _normalize_phrase(s)
+        if len(s_clean) > 1 and not s_clean.isdigit():
+            skills.append(s_clean)
+
+    return {
+        "text": text,
+        "skills": skills,
+        "education": education,
+        "experience": experience,
+    }
+
+
 def parse_resume(path: str) -> Dict[str, Any]:
     """High-level resume parser.
 
@@ -95,20 +134,4 @@ def parse_resume(path: str) -> Dict[str, Any]:
     }
     """
     text = extract_text_from_pdf(path)
-    candidates = _candidate_skill_phrases(text)
-    education = extract_education(text)
-    experience = extract_experience(text)
-
-    # simple normalization of candidate skills
-    skills = []
-    for s in candidates:
-        s_clean = re.sub(r"\s+", " ", s).strip()
-        if len(s_clean) > 1 and not s_clean.isdigit():
-            skills.append(s_clean)
-
-    return {
-        "text": text,
-        "skills": skills,
-        "education": education,
-        "experience": experience,
-    }
+    return parse_resume_text(text)

@@ -1,0 +1,1 @@
+D:\Projects\ai-resume-coach\venv\Scripts\python.exe: can't open file 'D:\\Projects\\Agentic ai resume coach\\backend\\"D:\\Projects\\Agentic': [Errno 22] Invalid argument

@@ -1,5 +1,6 @@
 import React from 'react'
 import { BarChart3, TrendingUp, Award, CalendarClock } from 'lucide-react'
+import ATSProgressTimeline from './dashboard/ATSProgressTimeline'
 
 export default function AnalyticsPanel({ analytics }) {
   if (!analytics) {
@@ -49,22 +50,47 @@ export default function AnalyticsPanel({ analytics }) {
           })}
         </div>
 
-        <div className="rounded-xl border border-dark-border bg-dark-bg/70 p-4">
-          <p className="text-sm font-medium text-dark-text mb-2">Top Missing Skills</p>
-          {analytics.top_missing_skills?.length ? (
-            <div className="flex flex-wrap gap-2">
-              {analytics.top_missing_skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="px-3 py-1 rounded-full text-xs border border-purple-glow/50 bg-purple-glow/10 text-purple-300"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-dark-muted">No missing skill trend available yet.</p>
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-dark-border bg-dark-bg/70 p-4">
+            <p className="text-sm font-medium text-dark-text mb-2">Top Missing Skills</p>
+            {analytics.top_missing_skills?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {analytics.top_missing_skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="px-3 py-1 rounded-full text-xs border border-purple-glow/50 bg-purple-glow/10 text-purple-300"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-dark-muted">No missing skill trend available yet.</p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-dark-border bg-dark-bg/70 p-4">
+            <p className="text-sm font-medium text-dark-text mb-2">Recent Interview Sessions</p>
+            {analytics.recent_interview_sessions?.length ? (
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                {analytics.recent_interview_sessions.slice(0, 4).map((session) => (
+                  <div key={session.session_token} className="rounded-lg border border-dark-border bg-dark-card/60 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-dark-text">Session #{session.id}</p>
+                      <span className="text-xs text-dark-muted">{session.status}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-dark-muted">Questions: {session.question_count} • Updated: {new Date(session.updated_at).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-dark-muted">No interview attempts recorded yet.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <ATSProgressTimeline points={analytics.ats_progress_timeline || []} />
         </div>
       </div>
     </section>

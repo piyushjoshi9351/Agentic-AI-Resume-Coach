@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { AlertCircle, Printer, X, LogOut, ChevronDown, Home, History, Settings } from 'lucide-react'
 import AuthPanel from './components/AuthPanel'
 import HistoryPanel from './components/HistoryPanel'
+import History from './pages/History'
 import AnalyticsPanel from './components/AnalyticsPanel'
 import JobParserPanel from './components/JobParserPanel'
+import JobSearch from './components/JobSearch'
 import ResumeUpload from './components/ResumeUpload'
 import JobDescription from './components/JobDescription'
 import AnalyzeButton from './components/AnalyzeButton'
@@ -14,6 +16,7 @@ import ResumeImprover from './components/ResumeImprover'
 import InterviewAnalyzer from './components/InterviewAnalyzer'
 import EmailGenerator from './components/EmailGenerator'
 import UserProfileForm from './components/UserProfileForm'
+import InterviewSession from './components/interview/InterviewSession'
 import {
   analyzeResume,
   checkApiHealth,
@@ -24,6 +27,7 @@ import {
   getAnalyticsSummary,
   deleteHistoryItem,
   parseJobUrl,
+  searchJobs,
   downloadReport,
   setAuthToken,
   improveResume,
@@ -34,6 +38,8 @@ import {
   deleteJobApplication,
   generateFollowUpEmail,
   analyzeInterviewAnswer,
+  startInterviewSession,
+  evaluateInterviewAnswer,
   updateUserProfile,
   getUserProfile,
   getTaskStatus,
@@ -99,18 +105,21 @@ export default function App() {
 
   const isFormValid = resumeFile && (jobDescription.trim().length >= 50 || jobUrl.trim().length > 0)
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = async ({ jobDescription: overrideJobDescription, jobUrl: overrideJobUrl } = {}) => {
     // Validate inputs
     setResumeError('')
     setJobError('')
     setError(null)
+
+    const effectiveJobDescription = (overrideJobDescription ?? jobDescription).trim()
+    const effectiveJobUrl = overrideJobUrl ?? jobUrl
 
     if (!resumeFile) {
       setResumeError('Please upload a resume PDF')
       return
     }
 
-    if (jobDescription.trim().length < 50 && !jobUrl.trim()) {
+    if (effectiveJobDescription.length < 50 && !effectiveJobUrl.trim()) {
       setJobError('Job description must be at least 50 characters')
       return
     }
@@ -118,7 +127,7 @@ export default function App() {
     setIsLoading(true)
     setResults(null)
 
-    const response = await analyzeResume(resumeFile, jobDescription, jobUrl)
+    const response = await analyzeResume(resumeFile, effectiveJobDescription, effectiveJobUrl)
 
     if (response.success) {
       setResults(response.data)
@@ -137,6 +146,23 @@ export default function App() {
     }
 
     setIsLoading(false)
+  }
+
+  const handleLiveJobSelected = async (job) => {
+    const selectedDescription = job?.description || ''
+    const selectedUrl = job?.job_url || ''
+
+    setJobDescription(selectedDescription)
+    setJobUrl(selectedUrl)
+    setJobError('')
+    setToast(`Selected live job: ${job?.title || 'role'}`)
+
+    if (resumeFile && selectedDescription.trim().length >= 50) {
+      await handleAnalyze({
+        jobDescription: selectedDescription,
+        jobUrl: selectedUrl,
+      })
+    }
   }
 
   const handleAuthLogin = async ({ email, password }) => {
@@ -343,6 +369,13 @@ export default function App() {
                     {/* Main Analysis Section */}
                     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-8">
                       <h2 className="text-2xl font-bold mb-8 text-white">Resume Analysis</h2>
+
+                      <div className="mb-8">
+                        <JobSearch
+                          searchJobs={searchJobs}
+                          onSelectJob={handleLiveJobSelected}
+                        />
+                      </div>
                       
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                         <ResumeUpload
@@ -418,6 +451,11 @@ export default function App() {
 
                     {/* Feature Sections */}
                     <div className="space-y-6">
+                      <InterviewSession
+                        analysisId={results.analysis_id}
+                        startInterviewSession={startInterviewSession}
+                        evaluateInterviewAnswer={evaluateInterviewAnswer}
+                      />
                       <ResumeImprover
                         analysisId={results.analysis_id}
                         improveResume={improveResume}
@@ -451,6 +489,9 @@ export default function App() {
                   </div>
                 )}
               </div>
+            )}
+            {activeTab === 'history' && (
+              <History />
             )}
 
             {activeTab === 'history' && (

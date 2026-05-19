@@ -16,8 +16,9 @@ from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Optional
+import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -33,13 +34,30 @@ load_dotenv(override=True)
 
 from graph import create_analysis_graph
 from db import init_db, get_db, User, AnalysisRecord, ResumeVersion, JobApplication, UserProfile
+from database.db import engine as database_engine
+from database.models import Base as DatabaseBase
 from services.cache import cache_client
 from services.job_parser import parse_job_url
 from services.pdf_export import generate_report_pdf_bytes
 from services.resume_service import calculate_resume_diff, generate_improved_resume
 from services.email_service import generate_follow_up_email, generate_interview_preparation_email
 from services.interview_analyzer import analyze_interview_answer
+from interview import generate_interview_questions, evaluate_interview_answer, normalize_transcript, extract_focus_skills
 from services.task_service import create_task, get_task, update_task, TaskStatus
+from ats import parse_resume_text, search_jobs
+from database.models import ATSProgressSnapshot, InterviewAttempt, InterviewSession, ResumeAnalysis
+from database.crud import (
+    create_progress_snapshot,
+    create_interview_session,
+    update_interview_session,
+    create_interview_attempt,
+    get_recent_progress_points,
+    get_recent_interview_sessions,
+    save_resume_analysis,
+    save_interview_feedback,
+    get_user_history,
+)
+from database.schemas import ATSProgressPoint, TimelineResponse, InterviewSessionResponse, ResumeAnalysisCreate, InterviewSessionCreate, ResumeAnalysisResponse
 
 # Configure logging
 logging.basicConfig(
@@ -62,6 +80,11 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Application startup - initializing database")
     init_db()
+    try:
+        DatabaseBase.metadata.create_all(bind=database_engine)
+        logger.info("Database tables ensured via SQLAlchemy create_all")
+    except Exception as exc:
+        logger.warning("Failed to create database tables: %s", exc)
     yield
     # Shutdown
     logger.info("🛑 Application shutdown")
@@ -155,6 +178,8 @@ class AnalyticsSummary(BaseModel):
     best_ats_score: float
     analyses_last_7_days: int
     top_missing_skills: list[str]
+    ats_progress_timeline: list[ATSProgressPoint] = Field(default_factory=list)
+    recent_interview_sessions: list[InterviewSessionResponse] = Field(default_factory=list)
 
 
 class JobParseRequest(BaseModel):
@@ -169,6 +194,16 @@ class JobParseResponse(BaseModel):
     responsibilities: list[str]
     experience_level: str
     raw_text: str
+
+
+class JobSearchItem(BaseModel):
+    title: str
+    company: str
+    description: str
+    location: str
+    job_url: Optional[str] = None
+    employment_type: Optional[str] = None
+    source: Optional[str] = None
 
 
 class ResumeImproveRequest(BaseModel):
@@ -251,6 +286,48 @@ class InterviewAnalysisResponse(BaseModel):
     strength_score: int
     confidence: float
     error: Optional[str] = None
+
+
+class InterviewSessionStartRequest(BaseModel):
+    analysis_id: int = Field(gt=0)
+
+
+class InterviewSessionStartResponse(BaseModel):
+    session_id: str
+    analysis_id: int
+    questions: list[dict]
+    context: dict
+
+
+class InterviewSessionEvaluateRequest(BaseModel):
+    session_id: str = Field(min_length=8)
+    question_index: int = Field(ge=0)
+    question: str = Field(min_length=10)
+    answer: str = Field(min_length=2)
+
+
+class InterviewSessionEvaluateResponse(BaseModel):
+    session_id: str
+    question_index: int
+    score_out_of_10: float
+    strengths: list[str]
+    improvements: list[str]
+    technical_depth: float
+    clarity: float
+    confidence: float
+    communication: float
+    relevance: float
+    transcript: str
+    completed: bool = False
+    next_question: Optional[dict] = None
+
+
+class InterviewSessionStateResponse(BaseModel):
+    session_id: str
+    analysis_id: int
+    questions: list[dict]
+    responses: list[dict]
+    current_index: int
 
 
 class TaskResponse(BaseModel):
@@ -393,11 +470,74 @@ def safe_json_load(raw_data: str, fallback):
         return fallback
 
 
-def _hash_analysis_input(resume_text: str, job_description: str, parsed_job_data: dict) -> str:
+def _build_user_history_context(db: Session, current_user: Optional[User], limit: int = 5) -> list[dict]:
+    if not current_user:
+        return []
+
+    records = (
+        db.query(AnalysisRecord)
+        .filter(AnalysisRecord.user_id == current_user.id)
+        .order_by(AnalysisRecord.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    history_context: list[dict] = []
+    for record in records:
+        history_context.append(
+            {
+                "analysis_id": record.id,
+                "created_at": record.created_at.isoformat(),
+                "resume_filename": record.resume_filename,
+                "job_description": record.job_description[:240],
+                "resume_analysis": safe_json_load(record.resume_analysis_json, {}),
+                "job_match": safe_json_load(record.job_match_json, {}),
+            }
+        )
+    return history_context
+
+
+def _build_interview_session_cache_key(session_id: str) -> str:
+    return f"interview-session:{session_id}"
+
+
+def _extract_score_breakdown(job_match: dict) -> dict:
+    breakdown = job_match.get("score_breakdown", {}) if isinstance(job_match, dict) else {}
+    return breakdown if isinstance(breakdown, dict) else {}
+
+
+def _store_progress_snapshot(db: Session, current_user: Optional[User], analysis_id: Optional[int], job_match: dict) -> None:
+    if not current_user or not job_match:
+        return
+
+    breakdown = _extract_score_breakdown(job_match)
+    matched_skills = job_match.get("matching_skills", []) if isinstance(job_match, dict) else []
+    missing_skills = job_match.get("missing_skills", []) if isinstance(job_match, dict) else []
+
+    try:
+        create_progress_snapshot(
+            db,
+            user_id=current_user.id,
+            analysis_id=analysis_id,
+            ats_score=float(job_match.get("ats_match_score", 0.0) or 0.0),
+            semantic_match_percent=float(breakdown.get("semantic_similarity_percent", job_match.get("confidence", 0.0) * 100) or 0.0),
+            skill_score=float(breakdown.get("skill_score", 0.0) or 0.0),
+            experience_score=float(breakdown.get("experience_score", 0.0) or 0.0),
+            project_score=float(breakdown.get("project_score", 0.0) or 0.0),
+            education_score=float(breakdown.get("education_score", 0.0) or 0.0),
+            matched_skills_json=json.dumps(matched_skills),
+            missing_skills_json=json.dumps(missing_skills),
+        )
+    except Exception as exc:
+        logger.warning("Failed to store ATS progress snapshot: %s", exc)
+
+
+def _hash_analysis_input(resume_text: str, job_description: str, parsed_job_data: dict, parsed_resume_data: dict) -> str:
     payload = {
         "resume_text": resume_text,
         "job_description": job_description,
         "parsed_job_data": parsed_job_data,
+        "parsed_resume_data": parsed_resume_data,
     }
     raw = json.dumps(payload, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -454,6 +594,27 @@ async def parse_job(
     except Exception as exc:
         logger.error("Job parse failed: %s", str(exc), exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to parse job URL")
+
+
+@app.get("/api/jobs/search", response_model=list[JobSearchItem])
+async def search_live_jobs(
+    request: Request,
+    q: str = Query(..., min_length=2, max_length=120),
+    page: int = Query(1, ge=1, le=20),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+) -> list[JobSearchItem]:
+    try:
+        _check_rate_limit(request, current_user)
+        jobs = search_jobs(q, page=page)
+        return [JobSearchItem(**item) for item in jobs]
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except requests.HTTPError as exc:
+        logger.error("Live job search failed: %s", str(exc), exc_info=True)
+        raise HTTPException(status_code=502, detail="Failed to fetch live jobs from JSearch")
+    except Exception as exc:
+        logger.error("Live job search error: %s", str(exc), exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to fetch live jobs")
 
 
 @app.post("/auth/register", response_model=AuthResponse)
@@ -543,6 +704,8 @@ def get_analytics_summary(
             best_ats_score=0.0,
             analyses_last_7_days=0,
             top_missing_skills=[],
+            ats_progress_timeline=[],
+            recent_interview_sessions=[],
         )
 
     seven_days_ago = datetime.now() - timedelta(days=7)
@@ -575,12 +738,23 @@ def get_analytics_summary(
         skill for skill, _ in sorted(missing_skill_counter.items(), key=lambda item: item[1], reverse=True)[:5]
     ]
 
+    progress_points = [
+        ATSProgressPoint(**point)
+        for point in get_recent_progress_points(db, current_user.id, limit=12)
+    ]
+    interview_sessions = [
+        InterviewSessionResponse(**session)
+        for session in get_recent_interview_sessions(db, current_user.id, limit=8)
+    ]
+
     return AnalyticsSummary(
         total_analyses=len(records),
         avg_ats_score=avg_ats_score,
         best_ats_score=best_ats_score,
         analyses_last_7_days=analyses_last_7_days,
         top_missing_skills=top_missing_skills,
+        ats_progress_timeline=progress_points,
+        recent_interview_sessions=interview_sessions,
     )
 
 
@@ -645,7 +819,9 @@ async def analyze_resume_and_job(
         
         logger.info(f"Resume text extracted: {len(resume_text)} characters")
 
-        cache_key = f"analysis:{_hash_analysis_input(resume_text, effective_job_description, parsed_job_data)}"
+        parsed_resume_data = parse_resume_text(resume_text)
+
+        cache_key = f"analysis:{_hash_analysis_input(resume_text, effective_job_description, parsed_job_data, parsed_resume_data)}"
         cached = cache_client.get(cache_key)
         if cached:
             response = AnalysisResponse(
@@ -671,17 +847,34 @@ async def analyze_resume_and_job(
                 db.commit()
                 db.refresh(history)
                 response.analysis_id = history.id
+                _store_progress_snapshot(db, current_user, history.id, response.job_match)
+                # Also save ATS report into the persistent ResumeAnalysis table
+                try:
+                    ra_payload = ResumeAnalysisCreate(
+                        user_id=current_user.id,
+                        ats_score=float(response.job_match.get("ats_match_score", 0.0) or 0.0),
+                        matched_skills=response.job_match.get("matching_skills", []),
+                        missing_skills=response.job_match.get("missing_skills", []),
+                        semantic_scores=response.job_match.get("score_breakdown", {}),
+                        raw_report=json.dumps({"resume_analysis": response.resume_analysis, "job_match": response.job_match}),
+                    )
+                    save_resume_analysis(db, ra_payload)
+                except Exception:
+                    logger.exception("Failed to persist ResumeAnalysis for cached result")
             return response
         
         # Create and run the analysis graph
         logger.info("Starting multi-agent analysis pipeline")
         graph = create_analysis_graph()
+        user_history = _build_user_history_context(db, current_user)
         
         # Prepare input for the graph
         analysis_input = {
             "resume_text": resume_text,
+            "parsed_resume_data": parsed_resume_data,
             "job_description": effective_job_description,
             "parsed_job_data": parsed_job_data,
+            "user_history": user_history,
         }
         
         # Run the graph synchronously
@@ -702,6 +895,9 @@ async def analyze_resume_and_job(
             {
                 "resume_analysis": response.resume_analysis,
                 "job_match": response.job_match,
+                "resume_data": result.get("resume_data", response.resume_analysis),
+                "ats_result": result.get("ats_result", response.job_match),
+                "user_history": user_history,
                 "cover_letter": response.cover_letter,
                 "interview_questions": response.interview_questions,
             },
@@ -725,6 +921,20 @@ async def analyze_resume_and_job(
             db.commit()
             db.refresh(history)
             response.analysis_id = history.id
+            _store_progress_snapshot(db, current_user, history.id, response.job_match)
+            # Persist ATS report to dedicated ResumeAnalysis table as well
+            try:
+                ra_payload = ResumeAnalysisCreate(
+                    user_id=current_user.id,
+                    ats_score=float(response.job_match.get("ats_match_score", 0.0) or 0.0),
+                    matched_skills=response.job_match.get("matching_skills", []),
+                    missing_skills=response.job_match.get("missing_skills", []),
+                    semantic_scores=response.job_match.get("score_breakdown", {}),
+                    raw_report=json.dumps({"resume_analysis": response.resume_analysis, "job_match": response.job_match}),
+                )
+                save_resume_analysis(db, ra_payload)
+            except Exception:
+                logger.exception("Failed to persist ResumeAnalysis for analysis result")
         
         return response
         
@@ -1100,6 +1310,226 @@ async def analyze_interview_answer_endpoint(
     return InterviewAnalysisResponse(**result)
 
 
+@app.post("/interview/session/start", response_model=InterviewSessionStartResponse)
+def start_interview_session(
+    payload: InterviewSessionStartRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> InterviewSessionStartResponse:
+    """Start a voice mock interview session from a saved analysis record."""
+    record = (
+        db.query(AnalysisRecord)
+        .filter(AnalysisRecord.id == payload.analysis_id, AnalysisRecord.user_id == current_user.id)
+        .first()
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="Analysis record not found")
+
+    resume_analysis = safe_json_load(record.resume_analysis_json, {})
+    ats_result = safe_json_load(record.job_match_json, {})
+    parsed_job_data = safe_json_load(record.parsed_job_json, {})
+    user_history = _build_user_history_context(db, current_user)
+
+    session_id = secrets.token_urlsafe(16)
+    context = {
+        "resume_filename": record.resume_filename,
+        "job_description": record.job_description[:500],
+        "resume_skills": resume_analysis.get("skills", {}).get("technical", []),
+        "ats_gaps": ats_result.get("gaps_to_address", []) or [
+            item.get("skill", "") for item in ats_result.get("missing_skills", []) if isinstance(item, dict)
+        ],
+    }
+    questions = generate_interview_questions(resume_analysis, ats_result, user_history, parsed_job_data)
+    session_data = {
+        "session_id": session_id,
+        "analysis_id": record.id,
+        "user_id": current_user.id,
+        "questions": questions,
+        "responses": [],
+        "current_index": 0,
+        "context": context,
+        "user_history": user_history,
+    }
+    cache_client.set(_build_interview_session_cache_key(session_id), session_data, ttl_seconds=7200)
+    create_interview_session(
+        db,
+        user_id=current_user.id,
+        analysis_id=record.id,
+        session_token=session_id,
+        question_count=len(questions),
+        current_index=0,
+        status="active",
+        context_json=json.dumps({"context": context, "questions": questions, "user_history": user_history}),
+    )
+    return InterviewSessionStartResponse(session_id=session_id, analysis_id=record.id, questions=questions, context=context)
+
+
+@app.get("/interview/session/{session_id}", response_model=InterviewSessionStateResponse)
+def get_interview_session_state(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> InterviewSessionStateResponse:
+    """Retrieve the current interview session state."""
+    session_data = cache_client.get(_build_interview_session_cache_key(session_id))
+    if not session_data or session_data.get("user_id") != current_user.id:
+        session_row = (
+            db.query(InterviewSession)
+            .filter(InterviewSession.session_token == session_id, InterviewSession.user_id == current_user.id)
+            .first()
+        )
+        if not session_row:
+            raise HTTPException(status_code=404, detail="Interview session not found")
+
+        parsed_context = safe_json_load(session_row.context_json, {})
+        questions = parsed_context.get("questions", []) if isinstance(parsed_context, dict) else []
+        context = parsed_context.get("context", {}) if isinstance(parsed_context, dict) else {}
+        responses = []
+        for attempt in sorted(session_row.attempts, key=lambda item: item.question_index):
+            responses.append(
+                {
+                    "question_index": attempt.question_index,
+                    "question": attempt.question_text,
+                    "answer": attempt.answer_text,
+                    "feedback": safe_json_load(attempt.feedback_json, {}),
+                }
+            )
+
+        session_data = {
+            "session_id": session_row.session_token,
+            "analysis_id": session_row.analysis_id,
+            "user_id": session_row.user_id,
+            "questions": questions,
+            "responses": responses,
+            "current_index": session_row.current_index,
+            "context": context,
+            "user_history": parsed_context.get("user_history", []) if isinstance(parsed_context, dict) else [],
+        }
+        cache_client.set(_build_interview_session_cache_key(session_id), session_data, ttl_seconds=7200)
+    return InterviewSessionStateResponse(
+        session_id=session_data["session_id"],
+        analysis_id=int(session_data["analysis_id"]),
+        questions=session_data.get("questions", []),
+        responses=session_data.get("responses", []),
+        current_index=int(session_data.get("current_index", 0)),
+    )
+
+
+@app.post("/interview/session/evaluate", response_model=InterviewSessionEvaluateResponse)
+def evaluate_interview_session_answer(
+    payload: InterviewSessionEvaluateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> InterviewSessionEvaluateResponse:
+    """Evaluate a spoken interview answer and persist feedback in session cache."""
+    session_data = cache_client.get(_build_interview_session_cache_key(payload.session_id))
+    if not session_data or session_data.get("user_id") != current_user.id:
+        raise HTTPException(status_code=404, detail="Interview session not found")
+
+    session_row = (
+        db.query(InterviewSession)
+        .filter(InterviewSession.session_token == payload.session_id, InterviewSession.user_id == current_user.id)
+        .first()
+    )
+    if not session_row:
+        raise HTTPException(status_code=404, detail="Interview session not found")
+
+    questions = session_data.get("questions", [])
+    if payload.question_index >= len(questions):
+        raise HTTPException(status_code=400, detail="Question index out of range")
+
+    cleaned_answer = normalize_transcript(payload.answer)
+    ats_gaps = session_data.get("context", {}).get("ats_gaps", [])
+    focus_skills = extract_focus_skills(f"{payload.question} {cleaned_answer}")
+    evaluation = evaluate_interview_answer(
+        payload.question,
+        cleaned_answer,
+        {
+            "focus_skills": focus_skills,
+            "ats_gaps": ats_gaps,
+            "resume_filename": session_data.get("context", {}).get("resume_filename", ""),
+        },
+    )
+
+    # Persist per-question interview attempt in the existing attempts table
+    create_interview_attempt(
+        db,
+        session_id=session_row.id,
+        question_index=payload.question_index,
+        question_text=payload.question,
+        answer_text=cleaned_answer,
+        transcript_text=cleaned_answer,
+        score_out_of_10=float(evaluation.get("score_out_of_10", 0.0)),
+        technical_depth=float(evaluation.get("technical_depth", 0.0)),
+        clarity=float(evaluation.get("clarity", 0.0)),
+        confidence=float(evaluation.get("confidence", 0.0)),
+        communication=float(evaluation.get("communication", 0.0)),
+        relevance=float(evaluation.get("relevance", 0.0)),
+        strengths_json=json.dumps(evaluation.get("strengths", [])),
+        improvements_json=json.dumps(evaluation.get("improvements", [])),
+        feedback_json=json.dumps(evaluation),
+    )
+
+    # Also save a summarized interview feedback record in the new InterviewSession table
+    try:
+        fb_payload = InterviewSessionCreate(
+            user_id=current_user.id,
+            question=payload.question,
+            answer=cleaned_answer,
+            feedback=evaluation,
+            score=float(evaluation.get("score_out_of_10", 0.0)),
+        )
+        save_interview_feedback(db, fb_payload)
+    except Exception:
+        logger.exception("Failed to persist interview feedback")
+
+    responses = session_data.get("responses", [])
+    response_item = {
+        "question_index": payload.question_index,
+        "question": payload.question,
+        "answer": cleaned_answer,
+        "evaluation": evaluation,
+    }
+    responses.append(response_item)
+    next_index = payload.question_index + 1
+    completed = next_index >= len(questions)
+
+    session_data["responses"] = responses
+    session_data["current_index"] = next_index
+    session_data["last_feedback"] = evaluation
+    cache_client.set(_build_interview_session_cache_key(payload.session_id), session_data, ttl_seconds=7200)
+
+    update_interview_session(
+        db,
+        session_row,
+        current_index=next_index,
+        status="completed" if completed else "active",
+        question_count=len(questions),
+        context_json=json.dumps({
+            "context": session_data.get("context", {}),
+            "questions": questions,
+            "user_history": session_data.get("user_history", []),
+        }),
+    )
+
+    next_question = questions[next_index] if not completed else None
+    return InterviewSessionEvaluateResponse(
+        session_id=payload.session_id,
+        question_index=payload.question_index,
+        score_out_of_10=float(evaluation.get("score_out_of_10", 0.0)),
+        strengths=list(evaluation.get("strengths", [])),
+        improvements=list(evaluation.get("improvements", [])),
+        technical_depth=float(evaluation.get("technical_depth", 0.0)),
+        clarity=float(evaluation.get("clarity", 0.0)),
+        confidence=float(evaluation.get("confidence", 0.0)),
+        communication=float(evaluation.get("communication", 0.0)),
+        relevance=float(evaluation.get("relevance", 0.0)),
+        transcript=cleaned_answer,
+        completed=completed,
+        next_question=next_question,
+    )
+
+
 @app.get("/task/{task_id}", response_model=TaskResponse)
 def get_task_status(
     task_id: str,
@@ -1111,6 +1541,38 @@ def get_task_status(
         raise HTTPException(status_code=404, detail="Task not found")
 
     return TaskResponse(**task.to_dict())
+
+
+@app.get("/api/history/ats", response_model=list[ResumeAnalysisResponse])
+def api_get_ats_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return persisted ATS resume analyses for the current user."""
+    records = (
+        db.query(ResumeAnalysis)
+        .filter(ResumeAnalysis.user_id == current_user.id)
+        .order_by(ResumeAnalysis.created_at.desc())
+        .limit(200)
+        .all()
+    )
+    return records
+
+
+@app.get("/api/history/interviews", response_model=list[InterviewSessionResponse])
+def api_get_interview_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return persisted interview session feedback records for the current user."""
+    rows = (
+        db.query(InterviewSession)
+        .filter(InterviewSession.user_id == current_user.id)
+        .order_by(InterviewSession.created_at.desc())
+        .limit(500)
+        .all()
+    )
+    return rows
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):

@@ -1,0 +1,1 @@
+D:\Projects\ai-resume-coach\venv\Scripts\python.exe: can't open file 'D:\\Projects\\Agentic ai resume coach\\_semantic_test.py': [Errno 2] No such file or directory

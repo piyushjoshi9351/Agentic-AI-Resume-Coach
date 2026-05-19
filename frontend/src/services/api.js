@@ -101,6 +101,18 @@ export const parseJobUrl = async (url) => {
   }
 }
 
+export const searchJobs = async (query, page = 1) => {
+  try {
+    const response = await api.get('/api/jobs/search', {
+      params: { q: query, page },
+    })
+    return { success: true, data: response.data }
+  } catch (error) {
+    const errorMessage = error.response?.data?.detail || 'Failed to search live jobs'
+    return { success: false, error: errorMessage }
+  }
+}
+
 export const downloadReport = async (analysisId) => {
   const response = await api.get(`/export/${analysisId}`, {
     responseType: 'blob',
@@ -158,6 +170,24 @@ export const checkApiHealth = async () => {
     } catch (error) {
       return { success: false, error: error.response?.data?.detail || 'Failed to fetch jobs' }
     }
+
+    export const getAtsHistory = async () => {
+      try {
+        const response = await api.get('/api/history/ats')
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, error: error.response?.data?.detail || 'Failed to fetch ATS history' }
+      }
+    }
+
+    export const getInterviewHistory = async () => {
+      try {
+        const response = await api.get('/api/history/interviews')
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, error: error.response?.data?.detail || 'Failed to fetch interview history' }
+      }
+    }
   }
 
   export const updateJobApplication = async (jobId, company, role, status, jobUrl = '', notes = '') => {
@@ -195,6 +225,38 @@ export const checkApiHealth = async () => {
       return { success: true, data: response.data }
     } catch (error) {
       return { success: false, error: error.response?.data?.detail || 'Failed to analyze answer' }
+    }
+  }
+
+  export const startInterviewSession = async (analysisId) => {
+    try {
+      const response = await api.post('/interview/session/start', { analysis_id: analysisId })
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || 'Failed to start interview session' }
+    }
+  }
+
+  export const getInterviewSessionState = async (sessionId) => {
+    try {
+      const response = await api.get(`/interview/session/${sessionId}`)
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || 'Failed to load interview session' }
+    }
+  }
+
+  export const evaluateInterviewAnswer = async ({ sessionId, questionIndex, question, answer }) => {
+    try {
+      const response = await api.post('/interview/session/evaluate', {
+        session_id: sessionId,
+        question_index: questionIndex,
+        question,
+        answer,
+      })
+      return { success: true, data: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data?.detail || 'Failed to evaluate interview answer' }
     }
   }
 
