@@ -1,55 +1,5 @@
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# Python virtual environments
 venv/
-.venv/
-env/
-ENV/
-
-# Python cache and artifacts
+.env
 __pycache__/
-*.py[cod]
-*$py.class
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-*.egg-info/
-*.db
-dist/
-build/
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Node / Frontend
-node_modules/
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Editor / IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Logs and temp
-*.log
-*.tmp
-*.temp
-
-# Optional app-specific
+*.pyc
 .streamlit/

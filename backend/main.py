@@ -12,6 +12,7 @@ import time
 import asyncio
 import secrets
 import binascii
+from types import SimpleNamespace
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
@@ -25,6 +26,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 from pypdf import PdfReader
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
@@ -59,11 +61,11 @@ from database.crud import (
 )
 from database.schemas import ATSProgressPoint, TimelineResponse, InterviewSessionResponse, ResumeAnalysisCreate, InterviewSessionCreate, ResumeAnalysisResponse
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+from logging_config import configure_logging, log_json, generate_request_id
+
+# Configure structured JSON logging
+configure_logging()
+import logging
 logger = logging.getLogger(__name__)
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-me-in-production")
@@ -563,18 +565,54 @@ def _check_rate_limit(request: Request, current_user: Optional[User]) -> None:
 
 
 @app.middleware("http")
-async def request_logging_middleware(request: Request, call_next):
-    started = time.perf_counter()
-    response = await call_next(request)
-    duration_ms = round((time.perf_counter() - started) * 1000, 2)
-    logger.info("%s %s -> %s (%sms)", request.method, request.url.path, response.status_code, duration_ms)
+async def structured_logging_middleware(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or generate_request_id()
+    request.state.request_id = request_id
+    start_ts = time.perf_counter()
+    start_time_str = time.strftime('%Y-%m-%dT%H:%M:%S%z')
+    try:
+        response = await call_next(request)
+        status = getattr(response, 'status_code', 500)
+    except Exception as exc:
+        duration_ms = round((time.perf_counter() - start_ts) * 1000, 2)
+        log_json(logging.ERROR,
+                 request_id=request_id,
+                 method=request.method,
+                 path=request.url.path,
+                 status=500,
+                 duration_ms=duration_ms,
+                 timestamp=start_time_str,
+                 message=str(exc),
+                 error_type=type(exc).__name__)
+        raise
+
+    duration_ms = round((time.perf_counter() - start_ts) * 1000, 2)
+    log_json(logging.INFO,
+             request_id=request_id,
+             method=request.method,
+             path=request.url.path,
+             status=status,
+             duration_ms=duration_ms,
+             timestamp=start_time_str)
+    # Echo request id back to client
+    if hasattr(response, 'headers'):
+        response.headers['X-Request-ID'] = request_id
     return response
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "AI Resume & Job Coach API"}
+    """Health check endpoint with DB connectivity check"""
+    db_ok = False
+    try:
+        with database_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception as exc:
+        logger.warning("DB health check failed: %s", exc)
+
+    status = "healthy" if db_ok else "degraded"
+    return {"status": status, "db": "ok" if db_ok else "error", "service": "AI Resume & Job Coach API"}
 
 
 @app.post("/job/parse", response_model=JobParseResponse)
@@ -1472,7 +1510,7 @@ def evaluate_interview_session_answer(
 
     # Also save a summarized interview feedback record in the new InterviewSession table
     try:
-        fb_payload = InterviewSessionCreate(
+        fb_payload = SimpleNamespace(
             user_id=current_user.id,
             question=payload.question,
             answer=cleaned_answer,

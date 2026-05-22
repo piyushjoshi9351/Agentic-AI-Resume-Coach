@@ -6,8 +6,6 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from typing import Any, Type
 
 from pydantic import BaseModel, ValidationError
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 DEFAULT_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "45"))
 PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-2.0-flash")
@@ -26,24 +24,32 @@ def _extract_json(text: str) -> Any:
 
 class LLMRouter:
     def __init__(self):
-        api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY environment variable not set")
+        self.primary = None
+        self.fallback = None
+        if AI_PROVIDER == "gemini":
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                raise ValueError("GOOGLE_API_KEY environment variable not set")
 
-        self.primary = ChatGoogleGenerativeAI(
-            model=PRIMARY_MODEL,
-            google_api_key=api_key,
-            temperature=0.3,
-            top_p=0.9,
-            top_k=40,
-        )
-        self.fallback = ChatGoogleGenerativeAI(
-            model=FALLBACK_MODEL,
-            google_api_key=api_key,
-            temperature=0.2,
-            top_p=0.9,
-            top_k=40,
-        )
+            from langchain_core.messages import HumanMessage, SystemMessage
+            from langchain_google_genai import ChatGoogleGenerativeAI
+
+            self._human_message = HumanMessage
+            self._system_message = SystemMessage
+            self.primary = ChatGoogleGenerativeAI(
+                model=PRIMARY_MODEL,
+                google_api_key=api_key,
+                temperature=0.3,
+                top_p=0.9,
+                top_k=40,
+            )
+            self.fallback = ChatGoogleGenerativeAI(
+                model=FALLBACK_MODEL,
+                google_api_key=api_key,
+                temperature=0.2,
+                top_p=0.9,
+                top_k=40,
+            )
 
     def _invoke_with_timeout(self, model, messages, timeout_seconds: int):
         with ThreadPoolExecutor(max_workers=1) as executor:
@@ -58,8 +64,8 @@ class LLMRouter:
             raise RuntimeError("Gemini provider disabled; local fallback mode is active")
 
         messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt),
+            self._system_message(content=system_prompt),
+            self._human_message(content=user_prompt),
         ]
 
         try:

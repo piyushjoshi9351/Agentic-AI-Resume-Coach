@@ -319,6 +319,7 @@ def _job_match_local(
     job_terms = _extract_job_skills(job_description, parsed_job_data)
     if not job_terms:
         job_terms = _unique_preserve_order([_normalize(skill) for skill in _find_terms(job_description, JOB_SKILLS)])
+    job_context = _context_keywords(job_description)
 
     matches = match_skills(resume_skills, job_terms)
     years_required = _find_years(job_description)
@@ -338,7 +339,7 @@ def _job_match_local(
     matched_job_terms = _unique_preserve_order([match[1] for match in matches])
     matching = matched_job_terms
     missing = [term for term in job_terms if term not in matched_job_terms]
-    context_overlap = len(set(_context_keywords(resume_text)) & set(_context_keywords(job_description))) / max(len(_context_keywords(job_description)), 1)
+    context_overlap = len(set(_context_keywords(resume_text)) & set(job_context)) / max(len(job_context), 1)
 
     if score >= 85:
         match_level = "Strong Match"
@@ -802,7 +803,9 @@ def interview_coach_agent(state: dict) -> dict:
     job_description = state.get("job_description", "")
     parsed_job_data = state.get("parsed_job_data", {})
     job_match = state.get("job_match", {})
+    ats_result = state.get("ats_result", job_match)
     resume_analysis = state.get("resume_analysis", {})
+    user_history = state.get("user_history", []) if isinstance(state, dict) else []
     
     system_prompt = """You are an expert executive coach and interview preparation specialist.
 Your task is to create 8 interview questions tailored to the candidate and role, with comprehensive answer frameworks.

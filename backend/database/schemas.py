@@ -16,7 +16,7 @@ class UserResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ResumeAnalysisCreate(BaseModel):
@@ -33,7 +33,7 @@ class ResumeAnalysisResponse(ResumeAnalysisCreate):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class InterviewSessionCreate(BaseModel):
@@ -49,7 +49,7 @@ class InterviewSessionResponse(InterviewSessionCreate):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 from datetime import datetime
 
 from pydantic import BaseModel, Field

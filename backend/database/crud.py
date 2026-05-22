@@ -22,7 +22,7 @@ def save_resume_analysis(db: Session, payload: ResumeAnalysisCreate):
 
 
 def save_interview_feedback(db: Session, payload: InterviewSessionCreate):
-    session = models.InterviewSession(
+    session = models.InterviewFeedback(
         user_id=payload.user_id,
         question=payload.question,
         answer=payload.answer,

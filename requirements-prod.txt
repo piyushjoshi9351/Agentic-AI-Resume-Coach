@@ -1,0 +1,26 @@
+# Production requirements (pinned to stable versions)
+# Pin key runtime packages to avoid surprise breakages during deploys/CI rebuilds
+
+fastapi==0.95.2
+uvicorn==0.22.0
+sqlalchemy==2.0.20
+psycopg2-binary==2.9.7
+passlib==1.7.4
+bcrypt==4.0.1
+sentence-transformers==2.2.2
+transformers==4.34.0
+torch==2.2.2
+spacy==3.8.3
+pdfplumber==0.11.7
+openai-whisper==2023.9.0
+alembic==1.11.1
+
+# Other project deps (un-pinned here; pin as needed)
+langgraph
+langchain-core
+langchain-google-genai
+streamlit
+pypdf
+python-dotenv
+requests
+reportlab

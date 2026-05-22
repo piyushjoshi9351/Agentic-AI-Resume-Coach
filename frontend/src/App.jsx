@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { AlertCircle, Printer, X, LogOut, ChevronDown, Home, History, Settings } from 'lucide-react'
 import AuthPanel from './components/AuthPanel'
 import HistoryPanel from './components/HistoryPanel'
-import History from './pages/History'
+import HistoryPage from './pages/History'
 import AnalyticsPanel from './components/AnalyticsPanel'
 import JobParserPanel from './components/JobParserPanel'
 import JobSearch from './components/JobSearch'
@@ -491,7 +491,7 @@ export default function App() {
               </div>
             )}
             {activeTab === 'history' && (
-              <History />
+              <HistoryPage />
             )}
 
             {activeTab === 'history' && (

@@ -1,12 +1,18 @@
 import re
 from typing import List, Dict, Any
-import pdfplumber
-import spacy
+try:
+    import spacy
+except ImportError:
+    spacy = None
+from pypdf import PdfReader
 
 # Try to load spaCy model; user should run: python -m spacy download en_core_web_sm
-try:
-    nlp = spacy.load("en_core_web_sm")
-except Exception:
+if spacy:
+    try:
+        nlp = spacy.load("en_core_web_sm")
+    except Exception:
+        nlp = None
+else:
     nlp = None
 
 DEGREE_PATTERNS = r"\b(Bachelor|B\.Sc|BSc|B\.E|BE|BTech|B\.Tech|Master|M\.Sc|MSc|M\.Tech|MTech|MBA|PhD|Doctor|Associate|BS|MS)\b"
@@ -21,13 +27,24 @@ def _normalize_phrase(phrase: str) -> str:
 
 def extract_text_from_pdf(path: str) -> str:
     """Extract plain text from a PDF file using pdfplumber."""
-    text = []
-    with pdfplumber.open(path) as pdf:
-        for page in pdf.pages:
+    try:
+        import pdfplumber
+
+        text = []
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text.append(page_text)
+        return "\n".join(text)
+    except ImportError:
+        reader = PdfReader(path)
+        text = []
+        for page in reader.pages:
             page_text = page.extract_text()
             if page_text:
                 text.append(page_text)
-    return "\n".join(text)
+        return "\n".join(text)
 
 
 def _candidate_skill_phrases(text: str, top_n: int = 80) -> List[str]:

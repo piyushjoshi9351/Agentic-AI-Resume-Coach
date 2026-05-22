@@ -1,18 +1,7 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from .db import Base
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, nullable=False, index=True)
-    password_hash = Column(String(512), nullable=False)
-    name = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class ResumeAnalysis(Base):
@@ -21,27 +10,27 @@ class ResumeAnalysis(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     ats_score = Column(Float, nullable=True)
-    matched_skills = Column(JSONB, nullable=True)
-    missing_skills = Column(JSONB, nullable=True)
-    semantic_scores = Column(JSONB, nullable=True)
+    matched_skills = Column(JSON, nullable=True)
+    missing_skills = Column(JSON, nullable=True)
+    semantic_scores = Column(JSON, nullable=True)
     raw_report = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", backref="resume_analyses")
 
 
-class InterviewSession(Base):
-    __tablename__ = "interview_sessions"
+class InterviewFeedback(Base):
+    __tablename__ = "interview_feedback"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=True)
-    feedback = Column(JSONB, nullable=True)
+    feedback = Column(JSON, nullable=True)
     score = Column(Float, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", backref="interview_sessions")
+    user = relationship("User", backref="interview_feedback")
 from datetime import datetime
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
@@ -69,6 +58,7 @@ class ATSProgressSnapshot(Base):
 
 class InterviewSession(Base):
     __tablename__ = "interview_sessions"
+    __table_args__ = {"extend_existing": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)

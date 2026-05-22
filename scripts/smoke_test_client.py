@@ -27,7 +27,16 @@ def make_pdf_bytes(text="Senior Python developer with REST API development, Djan
     buffer = BytesIO()
     c = canvas.Canvas(buffer)
     c.setFont("Helvetica", 10)
-    c.drawString(72, 720, text)
+    lines = [
+        text,
+        "Built production REST APIs with FastAPI and Django, integrated Postgres,",
+        "shipped analytics dashboards in Streamlit, automated deployment pipelines,",
+        "and worked with SQL, Git, Docker, and cloud-hosted services across multiple teams.",
+    ]
+    y = 720
+    for line in lines:
+        c.drawString(72, y, line)
+        y -= 18
     c.showPage()
     c.save()
     buffer.seek(0)

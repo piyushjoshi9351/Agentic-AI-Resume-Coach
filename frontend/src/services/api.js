@@ -133,166 +133,166 @@ export const checkApiHealth = async () => {
   }
 }
 
-  // Resume Improvement
-  export const improveResume = async (analysisId) => {
-    try {
-      const response = await api.post('/resume/improve', { analysis_id: analysisId })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to improve resume' }
-    }
+// Resume Improvement
+export const improveResume = async (analysisId) => {
+  try {
+    const response = await api.post('/resume/improve', { analysis_id: analysisId })
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to improve resume' }
   }
+}
 
-  export const getResumeDiff = async (analysisId) => {
-    try {
-      const response = await api.get(`/resume/${analysisId}/diff`)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to get diff' }
-    }
+export const getResumeDiff = async (analysisId) => {
+  try {
+    const response = await api.get(`/resume/${analysisId}/diff`)
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to get diff' }
   }
+}
 
-  // Job Tracker
-  export const createJobApplication = async (company, role, status = 'applied', jobUrl = '', notes = '') => {
-    try {
-      const response = await api.post('/jobs', { company, role, status, job_url: jobUrl, notes })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to create job application' }
-    }
+// Job Tracker
+export const createJobApplication = async (company, role, status = 'applied', jobUrl = '', notes = '') => {
+  try {
+    const response = await api.post('/jobs', { company, role, status, job_url: jobUrl, notes })
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to create job application' }
   }
+}
 
-  export const getJobApplications = async (status = null) => {
-    try {
-      const params = status ? { status } : {}
-      const response = await api.get('/jobs', { params })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to fetch jobs' }
-    }
-
-    export const getAtsHistory = async () => {
-      try {
-        const response = await api.get('/api/history/ats')
-        return { success: true, data: response.data }
-      } catch (error) {
-        return { success: false, error: error.response?.data?.detail || 'Failed to fetch ATS history' }
-      }
-    }
-
-    export const getInterviewHistory = async () => {
-      try {
-        const response = await api.get('/api/history/interviews')
-        return { success: true, data: response.data }
-      } catch (error) {
-        return { success: false, error: error.response?.data?.detail || 'Failed to fetch interview history' }
-      }
-    }
+export const getJobApplications = async (status = null) => {
+  try {
+    const params = status ? { status } : {}
+    const response = await api.get('/jobs', { params })
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to fetch jobs' }
   }
+}
 
-  export const updateJobApplication = async (jobId, company, role, status, jobUrl = '', notes = '') => {
-    try {
-      const response = await api.put(`/jobs/${jobId}`, { company, role, status, job_url: jobUrl, notes })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to update job application' }
-    }
+export const getAtsHistory = async () => {
+  try {
+    const response = await api.get('/api/history/ats')
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to fetch ATS history' }
   }
+}
 
-  export const deleteJobApplication = async (jobId) => {
-    try {
-      await api.delete(`/jobs/${jobId}`)
-      return { success: true }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to delete job application' }
-    }
+export const getInterviewHistory = async () => {
+  try {
+    const response = await api.get('/api/history/interviews')
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to fetch interview history' }
   }
+}
 
-  // Email Generation
-  export const generateFollowUpEmail = async (company, role, context = '') => {
-    try {
-      const response = await api.post('/email/follow-up', { company, role, context })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to generate email' }
-    }
+export const updateJobApplication = async (jobId, company, role, status, jobUrl = '', notes = '') => {
+  try {
+    const response = await api.put(`/jobs/${jobId}`, { company, role, status, job_url: jobUrl, notes })
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to update job application' }
   }
+}
 
-  // Interview Analysis
-  export const analyzeInterviewAnswer = async (question, answer) => {
-    try {
-      const response = await api.post('/interview/analyze', { question, answer })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to analyze answer' }
-    }
+export const deleteJobApplication = async (jobId) => {
+  try {
+    await api.delete(`/jobs/${jobId}`)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to delete job application' }
   }
+}
 
-  export const startInterviewSession = async (analysisId) => {
-    try {
-      const response = await api.post('/interview/session/start', { analysis_id: analysisId })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to start interview session' }
-    }
+// Email Generation
+export const generateFollowUpEmail = async (company, role, context = '') => {
+  try {
+    const response = await api.post('/email/follow-up', { company, role, context })
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to generate email' }
   }
+}
 
-  export const getInterviewSessionState = async (sessionId) => {
-    try {
-      const response = await api.get(`/interview/session/${sessionId}`)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to load interview session' }
-    }
+// Interview Analysis
+export const analyzeInterviewAnswer = async (question, answer) => {
+  try {
+    const response = await api.post('/interview/analyze', { question, answer })
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to analyze answer' }
   }
+}
 
-  export const evaluateInterviewAnswer = async ({ sessionId, questionIndex, question, answer }) => {
-    try {
-      const response = await api.post('/interview/session/evaluate', {
-        session_id: sessionId,
-        question_index: questionIndex,
-        question,
-        answer,
-      })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to evaluate interview answer' }
-    }
+export const startInterviewSession = async (analysisId) => {
+  try {
+    const response = await api.post('/interview/session/start', { analysis_id: analysisId })
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to start interview session' }
   }
+}
 
-  // User Profile
-  export const updateUserProfile = async (experienceLevel, targetRole, location, salaryRange, language = 'en') => {
-    try {
-      const response = await api.post('/profile', {
-        experience_level: experienceLevel,
-        target_role: targetRole,
-        location,
-        salary_range: salaryRange,
-        language,
-      })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to update profile' }
-    }
+export const getInterviewSessionState = async (sessionId) => {
+  try {
+    const response = await api.get(`/interview/session/${sessionId}`)
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to load interview session' }
   }
+}
 
-  export const getUserProfile = async () => {
-    try {
-      const response = await api.get('/profile')
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to get profile' }
-    }
+export const evaluateInterviewAnswer = async ({ sessionId, questionIndex, question, answer }) => {
+  try {
+    const response = await api.post('/interview/session/evaluate', {
+      session_id: sessionId,
+      question_index: questionIndex,
+      question,
+      answer,
+    })
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to evaluate interview answer' }
   }
+}
 
-  // Task Tracking
-  export const getTaskStatus = async (taskId) => {
-    try {
-      const response = await api.get(`/task/${taskId}`)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Failed to get task status' }
-    }
+// User Profile
+export const updateUserProfile = async (experienceLevel, targetRole, location, salaryRange, language = 'en') => {
+  try {
+    const response = await api.post('/profile', {
+      experience_level: experienceLevel,
+      target_role: targetRole,
+      location,
+      salary_range: salaryRange,
+      language,
+    })
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to update profile' }
   }
+}
+
+export const getUserProfile = async () => {
+  try {
+    const response = await api.get('/profile')
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to get profile' }
+  }
+}
+
+// Task Tracking
+export const getTaskStatus = async (taskId) => {
+  try {
+    const response = await api.get(`/task/${taskId}`)
+    return { success: true, data: response.data }
+  } catch (error) {
+    return { success: false, error: error.response?.data?.detail || 'Failed to get task status' }
+  }
+}
 
 export default api
