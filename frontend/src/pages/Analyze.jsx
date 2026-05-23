@@ -56,7 +56,8 @@ export default function Analyze() {
 
     if (response.success) {
       setLatestAnalysis(response.data)
-      navigate('/results', { state: { results: response.data } })
+      const nextAnalysisId = response.data?.analysis_id
+      navigate(nextAnalysisId != null ? `/results/${nextAnalysisId}` : '/results', { state: { results: response.data } })
     } else {
       setError(response.error)
     }

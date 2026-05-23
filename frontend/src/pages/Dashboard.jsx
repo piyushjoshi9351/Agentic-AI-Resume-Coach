@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Activity, ArrowRight, BarChart3, BrainCircuit, ChartSpline, Clock3, FileText, PlayCircle, Sparkles, TrendingUp, WandSparkles } from 'lucide-react'
+import { Activity, ArrowRight, BarChart3, BrainCircuit, Clock3, FileText, PlayCircle, Sparkles, TrendingUp } from 'lucide-react'
 import SkillMatchChart from '../components/dashboard/SkillMatchChart'
 import { getAnalyticsSummary, getCurrentUser, getHistory, getInterviewHistory } from '../services/api'
 import { setLatestAnalysis } from '../lib/storage'
@@ -22,15 +22,15 @@ function DashboardSkeleton() {
     <div className="space-y-8 animate-pulse">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="h-28 rounded-[1.8rem] border border-white/10 bg-white/5" />
+          <div key={index} className="skeleton-shimmer h-28 rounded-[1.8rem] border border-white/10 bg-white/5" />
         ))}
       </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1fr_0.9fr]">
-        <div className="h-[28rem] rounded-[1.8rem] border border-white/10 bg-white/5" />
-        <div className="h-[28rem] rounded-[1.8rem] border border-white/10 bg-white/5" />
-        <div className="h-[28rem] rounded-[1.8rem] border border-white/10 bg-white/5" />
+        <div className="skeleton-shimmer h-[28rem] rounded-[1.8rem] border border-white/10 bg-white/5" />
+        <div className="skeleton-shimmer h-[28rem] rounded-[1.8rem] border border-white/10 bg-white/5" />
+        <div className="skeleton-shimmer h-[28rem] rounded-[1.8rem] border border-white/10 bg-white/5" />
       </div>
-      <div className="h-40 rounded-[1.8rem] border border-white/10 bg-white/5" />
+      <div className="skeleton-shimmer h-40 rounded-[1.8rem] border border-white/10 bg-white/5" />
     </div>
   )
 }
@@ -186,7 +186,7 @@ export default function Dashboard() {
 
   const handleOpenAnalysis = (item) => {
     setLatestAnalysis({ ...item, analysis_id: item.id })
-    navigate('/results')
+    navigate(`/results/${item.id}`, { state: { results: { ...item, analysis_id: item.id } } })
   }
 
   return (
@@ -311,7 +311,7 @@ export default function Dashboard() {
                   <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Skill Gap Trends</p>
                   <h2 className="mt-2 text-xl font-semibold text-white">Capability radar</h2>
                 </div>
-                <ChartSpline className="h-5 w-5 text-purple-300" />
+                <BarChart3 className="h-5 w-5 text-purple-300" />
               </div>
 
               {skillChartData ? (
@@ -391,7 +391,7 @@ export default function Dashboard() {
                 <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Quick Actions</p>
                 <h2 className="mt-2 text-xl font-semibold text-white">Jump straight to the next step</h2>
               </div>
-              <WandSparkles className="h-5 w-5 text-purple-300" />
+                <Sparkles className="h-5 w-5 text-purple-300" />
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

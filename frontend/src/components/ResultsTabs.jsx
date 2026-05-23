@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { FileText, Zap, PenTool, HelpCircle, Copy, Download, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import ATSGauge from './dashboard/ATSGauge'
 import SkillMatchChart from './dashboard/SkillMatchChart'
@@ -18,7 +19,7 @@ export default function ResultsTabs({ results }) {
 
   const tabs = [
     { id: 0, label: 'Resume Analysis', icon: FileText },
-    { id: 1, label: 'Job Match', icon: Zap },
+    { id: 1, label: 'ATS Match', icon: Zap },
     { id: 2, label: 'Cover Letter', icon: PenTool },
     { id: 3, label: 'Interview Prep', icon: HelpCircle },
   ]
@@ -98,7 +99,15 @@ export default function ResultsTabs({ results }) {
         </div>
       </div>
 
-      <div className="min-h-96 animate-tabSwitch" key={activeTab}>
+      <AnimatePresence mode="wait">
+      <motion.div
+        key={activeTab}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -12 }}
+        transition={{ duration: 0.22 }}
+        className="min-h-96"
+      >
         {activeTab === 0 && (
           <div className="space-y-6 animate-fadeInUp">
             <div className="flex justify-end">
@@ -409,7 +418,8 @@ export default function ResultsTabs({ results }) {
             ))}
           </div>
         )}
-      </div>
+      </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

@@ -1,8 +1,10 @@
 import React from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './layouts/AppLayout'
+import PageTransition from './components/PageTransition'
 import Landing from './pages/Landing'
 import Auth from './pages/Auth'
 import Dashboard from './pages/Dashboard'
@@ -12,11 +14,13 @@ import Interview from './pages/Interview'
 import Tools from './pages/Tools'
 import JobTracker from './pages/JobTracker'
 
-export default function App() {
+function AnimatedRoutes() {
+  const location = useLocation()
+
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+    <AnimatePresence mode="wait" initial={false}>
+      <PageTransition key={location.pathname} className="min-h-screen">
+        <Routes location={location}>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
 
@@ -29,7 +33,7 @@ export default function App() {
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/analyze" element={<Analyze />} />
-            <Route path="/results" element={<Results />} />
+            <Route path="/results/:analysisId?" element={<Results />} />
             <Route path="/interview" element={<Interview />} />
             <Route path="/tools" element={<Tools />} />
             <Route path="/job-tracker" element={<JobTracker />} />
@@ -37,6 +41,16 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+      </PageTransition>
+    </AnimatePresence>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AnimatedRoutes />
       </BrowserRouter>
     </AuthProvider>
   )

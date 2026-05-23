@@ -3,7 +3,6 @@ import { AnimatePresence, motion, useInView } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
-  Bot,
   BrainCircuit,
   Briefcase,
   CheckCircle2,
@@ -13,12 +12,16 @@ import {
   FileText,
   GitBranch,
   Globe2,
+  Github,
+  Linkedin,
   Mic,
+  Mail,
   Radar,
   ShieldCheck,
   Sparkles,
   Star,
   TrendingUp,
+  Zap,
   Users,
   Workflow,
 } from 'lucide-react'
@@ -58,7 +61,7 @@ const featureCards = [
   },
   {
     title: 'Voice Interview',
-    icon: Bot,
+    icon: Mic,
     description: 'Speak responses and receive AI feedback to sharpen clarity, confidence, and relevance.',
   },
 ]
@@ -111,6 +114,14 @@ const footerLinks = [
   { label: 'Tools', to: '/tools' },
 ]
 
+const builtWith = ['Python', 'FastAPI', 'LangGraph', 'React', 'AI Agents']
+
+const socialLinks = [
+  { label: 'GitHub', icon: Github, href: 'https://github.com/piyushjoshi9351/Agentic-AI-Resume-Coach' },
+  { label: 'LinkedIn', icon: Linkedin, href: 'https://www.linkedin.com/in/' },
+  { label: 'Email', icon: Mail, href: 'mailto:hello@agenticresumecoach.com' },
+]
+
 function AnimatedCounter({ target, suffix, inView }) {
   const [value, setValue] = useState(0)
 
@@ -144,7 +155,8 @@ function AnimatedCounter({ target, suffix, inView }) {
 function PreviewCard({ title, value, subtitle, accent, icon: Icon }) {
   return (
     <motion.div
-      whileHover={{ y: -4, scale: 1.01 }}
+      whileHover={{ y: -3, scale: 1.01 }}
+      transition={{ duration: 0.15 }}
       className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl"
     >
       <div className="flex items-start justify-between gap-3">
@@ -200,7 +212,7 @@ export default function Landing() {
         ref={heroRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setMouse({ x: 0, y: 0 })}
-        className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
+        className="relative mx-auto max-w-7xl px-6 py-8"
       >
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] opacity-20" />
 
@@ -238,31 +250,31 @@ export default function Landing() {
           </div>
         </motion.header>
 
-        <section className="relative z-10 grid grid-cols-1 items-center gap-14 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:py-14">
+        <section className="relative z-10 grid min-h-[84vh] grid-cols-1 items-center gap-12 overflow-hidden py-8 lg:grid-cols-[1.05fr_0.95fr] lg:py-6">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
-            className="relative"
+            className="relative max-w-3xl"
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm font-medium text-purple-100 backdrop-blur-xl">
               <Sparkles className="h-4 w-4" />
               Multi-agent AI resume and interview workflow
             </div>
 
-            <h2 className="mt-6 max-w-3xl text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
+            <h2 className="mt-6 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-[4.1rem] lg:leading-[0.98]">
               Land Interviews Faster with Agentic AI
             </h2>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
-              Multi-agent AI system that analyzes resumes, matches jobs, generates personalized cover letters and coaches users for interviews.
+            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
+              An AI resume coach that analyzes your profile, matches live jobs, generates cover letters, and prepares you for interviews.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-4">
+            <div className="mt-6 flex flex-wrap gap-4">
               <button
                 type="button"
                 onClick={() => navigate('/auth')}
-                className="group inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/25 transition-all hover:-translate-y-0.5 hover:shadow-purple-500/40"
+                className="group inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/25 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-purple-500/35"
               >
                 Get Started
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -270,14 +282,14 @@ export default function Landing() {
               <button
                 type="button"
                 onClick={scrollToHowItWorks}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-slate-200 backdrop-blur-xl transition-all hover:border-purple-500/30 hover:bg-white/10 hover:text-white"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-slate-200 backdrop-blur-xl transition-all duration-150 hover:border-purple-500/30 hover:bg-white/10 hover:text-white"
               >
                 Watch Demo
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mt-10 grid max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="mt-7 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 'Resume parsing',
                 'ATS scoring',
@@ -298,114 +310,79 @@ export default function Landing() {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.75, ease: 'easeOut', delay: 0.1 }}
-            className="relative mx-auto w-full max-w-2xl"
+            className="relative mx-auto w-full max-w-[31rem] self-start lg:translate-y-[-1rem]"
           >
-            <motion.div style={parallaxStyle} className="absolute -left-8 top-8 hidden h-20 w-20 rounded-full bg-purple-500/25 blur-2xl lg:block" />
-            <motion.div style={{ ...parallaxStyle, transform: `translate3d(${mouse.x * -12}px, ${mouse.y * 10}px, 0)` }} className="absolute right-4 top-16 hidden h-24 w-24 rounded-full bg-blue-500/20 blur-2xl lg:block" />
+            <motion.div style={parallaxStyle} className="absolute -left-6 top-10 hidden h-20 w-20 rounded-full bg-purple-500/20 blur-2xl lg:block" />
+            <motion.div style={{ ...parallaxStyle, transform: `translate3d(${mouse.x * -10}px, ${mouse.y * 8}px, 0)` }} className="absolute right-2 top-14 hidden h-24 w-24 rounded-full bg-blue-500/18 blur-2xl lg:block" />
 
-            <div className="relative rounded-[2rem] border border-white/10 bg-white/5 p-4 shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-              <div className="absolute inset-0 rounded-[2rem] bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.12),transparent_30%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_28%)]" />
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-[0_30px_100px_rgba(0,0,0,0.42)] backdrop-blur-xl"
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.14),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.12),transparent_30%)]" />
 
-              <div className="relative grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-                <div className="space-y-4 rounded-[1.6rem] border border-white/10 bg-slate-950/70 p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400">ATS Score</p>
-                      <h3 className="mt-1 text-xl font-semibold text-white">Resume Match Preview</h3>
-                    </div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500">
-                      <TrendingUp className="h-5 w-5 text-white" />
-                    </div>
+              <div className="relative rounded-[1.6rem] border border-white/10 bg-slate-950/70 p-5 shadow-inner shadow-black/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.32em] text-slate-400">AI Agent Core</p>
+                    <h3 className="mt-2 text-2xl font-semibold text-white">Agentic AI Resume Core</h3>
                   </div>
-
-                  <div className="grid grid-cols-[auto_1fr] gap-5">
-                    <div className="relative flex h-28 w-28 items-center justify-center rounded-full border border-purple-500/30 bg-white/5">
-                      <div className="absolute inset-2 rounded-full border border-white/10" />
-                      <div className="flex flex-col items-center">
-                        <span className="text-3xl font-black text-white">92</span>
-                        <span className="text-xs uppercase tracking-[0.28em] text-purple-200">ATS</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      {[
-                        { label: 'Resume Match %', value: '86%', width: 'w-[86%]' },
-                        { label: 'Experience Fit', value: 'Strong', width: 'w-[76%]' },
-                        { label: 'Interview Readiness', value: 'High', width: 'w-[91%]' },
-                      ].map((item) => (
-                        <div key={item.label} className="space-y-2">
-                          <div className="flex items-center justify-between text-xs text-slate-400">
-                            <span>{item.label}</span>
-                            <span className="text-slate-200">{item.value}</span>
-                          </div>
-                          <div className="h-2 rounded-full bg-slate-800">
-                            <div className={`${item.width} h-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500`} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg shadow-purple-500/20">
+                    <Cpu className="h-5 w-5 text-white" />
                   </div>
                 </div>
 
-                <div className="space-y-4 rounded-[1.6rem] border border-white/10 bg-slate-950/70 p-5">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400">AI Agent Workflow</p>
-                  <div className="space-y-3">
-                    {[
-                      'Resume Analyzer',
-                      'Job Matcher',
-                      'Cover Letter Writer',
-                      'Interview Coach',
-                    ].map((agent, index) => (
-                      <motion.div
-                        key={agent}
-                        initial={{ opacity: 0, x: 18 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.35, delay: 0.15 + index * 0.08 }}
-                        className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-3"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/30 to-blue-500/30">
-                          <CircleDot className="h-4 w-4 text-purple-200" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-white">{agent}</p>
-                          <p className="text-xs text-slate-400">Processing live analysis pipeline</p>
-                        </div>
-                        <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                      </motion.div>
-                    ))}
+                <div className="mt-8 flex items-center justify-center">
+                  <div className="relative flex h-56 w-56 items-center justify-center">
+                    <motion.div
+                      animate={{ scale: [1, 1.08, 1] }}
+                      transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+                      className="absolute inset-0 rounded-full border border-purple-500/20 bg-purple-500/5 blur-[1px]"
+                    />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-6 rounded-full border border-dashed border-white/10"
+                    />
+                    <motion.div
+                      animate={{ y: [0, -8, 0] }}
+                      transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+                      className="relative flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-500 shadow-[0_0_50px_rgba(124,58,237,0.35)]"
+                    >
+                      <BrainCircuit className="h-12 w-12 text-white" />
+                    </motion.div>
+                    <motion.div className="absolute left-6 top-10 rounded-full border border-white/10 bg-slate-900/80 px-3 py-2 text-[10px] uppercase tracking-[0.24em] text-slate-200" animate={{ y: [0, -4, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>
+                      Analyze
+                    </motion.div>
+                    <motion.div className="absolute right-3 top-28 rounded-full border border-white/10 bg-slate-900/80 px-3 py-2 text-[10px] uppercase tracking-[0.24em] text-slate-200" animate={{ y: [0, 4, 0] }} transition={{ duration: 4.6, repeat: Infinity, ease: 'easeInOut' }}>
+                      Match
+                    </motion.div>
+                    <motion.div className="absolute bottom-7 left-14 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-[10px] font-medium uppercase tracking-[0.24em] text-emerald-200" animate={{ y: [0, -3, 0] }} transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}>
+                      Coach
+                    </motion.div>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">Skill Badges</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {['Python', 'FastAPI', 'LangGraph', 'SQL'].map((skill) => (
-                          <span key={skill} className="rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs text-purple-200">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">System Signal</p>
-                      <p className="mt-3 text-sm text-slate-200">Realtime workflow, protected access, and live AI-backed analysis.</p>
-                    </div>
-                  </div>
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm text-slate-300">
+                  Clean AI core visual for resume parsing, job matching, and interview coaching.
                 </div>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         </section>
+
+        
       </div>
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+      <main className="relative z-10 mx-auto mt-20 max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
         <motion.section
           id="how-it-works"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.25 }}
           transition={{ duration: 0.6 }}
-          className="mt-10 rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8"
+          className="rounded-[2rem] border border-white/10 bg-white/5 p-6 py-24 backdrop-blur-xl sm:p-8"
         >
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -424,21 +401,26 @@ export default function Landing() {
                 <React.Fragment key={step.title}>
                   <motion.div
                     whileHover={{ y: -4 }}
-                    className="rounded-3xl border border-white/10 bg-slate-950/65 p-5 shadow-lg shadow-black/20"
+                    className="h-full rounded-3xl border border-white/10 bg-slate-950/65 p-4 shadow-lg shadow-black/20"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg shadow-purple-500/20">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg shadow-purple-500/20">
                         <Icon className="h-5 w-5 text-white" />
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Step {index + 1}</p>
-                        <h4 className="mt-1 text-lg font-semibold text-white">{step.title}</h4>
+                        <h4 className="mt-1 text-base font-semibold text-white">{step.title}</h4>
                       </div>
                     </div>
                   </motion.div>
                   {index < flowSteps.length - 1 && (
                     <div className="flex items-center justify-center py-1 lg:py-0">
-                      <ChevronRight className="h-6 w-6 rotate-90 text-purple-300 lg:rotate-0" />
+                      <motion.div
+                        animate={{ x: [0, 6, 0] }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <ChevronRight className="h-6 w-6 rotate-90 text-purple-300 lg:rotate-0" />
+                      </motion.div>
                     </div>
                   )}
                 </React.Fragment>
@@ -447,7 +429,7 @@ export default function Landing() {
           </div>
         </motion.section>
 
-        <section className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="grid grid-cols-1 gap-4 py-28 sm:grid-cols-2 xl:grid-cols-3">
           {featureCards.map((card, index) => {
             const Icon = card.icon
             return (
@@ -458,11 +440,14 @@ export default function Landing() {
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.45, delay: index * 0.05 }}
                 whileHover={{ y: -6, scale: 1.01 }}
-                className="group rounded-[1.8rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition-all hover:border-purple-500/30"
+                className="group relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition-all hover:border-purple-500/30"
               >
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-blue-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/25 to-blue-500/25 ring-1 ring-white/10 transition-transform group-hover:scale-105">
-                    <Icon className="h-5 w-5 text-purple-200" />
+                    <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}>
+                      <Icon className="h-5 w-5 text-purple-200" />
+                    </motion.div>
                   </div>
                   <Star className="h-4 w-4 text-slate-500 transition-colors group-hover:text-purple-300" />
                 </div>
@@ -473,146 +458,20 @@ export default function Landing() {
           })}
         </section>
 
-        <motion.section
-          ref={statsRef}
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6 }}
-          className="mt-10 rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8"
-        >
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Stats</p>
-              <h3 className="mt-2 text-2xl font-bold text-white">Momentum for a startup-style product story.</h3>
-            </div>
-            <Globe2 className="hidden h-5 w-5 text-purple-300 md:block" />
-          </div>
-
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {stats.map((item, index) => {
-              const Icon = item.icon
-              return (
-                <motion.div
-                  key={item.label}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.35 }}
-                  transition={{ duration: 0.4, delay: index * 0.06 }}
-                  className="rounded-3xl border border-white/10 bg-slate-950/70 p-5"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{item.label}</p>
-                    <Icon className="h-4 w-4 text-purple-300" />
-                  </div>
-                  <div className="mt-4 text-4xl font-black text-white">
-                    <AnimatedCounter target={item.value} suffix={item.suffix} inView={statsInView} />
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-        </motion.section>
-
-        <section className="mt-10">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Testimonials</p>
-              <h3 className="mt-2 text-2xl font-bold text-white">What people notice first.</h3>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {testimonials.map((item, index) => (
-              <motion.article
-                key={item.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.25 }}
-                transition={{ duration: 0.45, delay: index * 0.05 }}
-                whileHover={{ y: -5 }}
-                className="rounded-[1.8rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
-              >
-                <div className="flex items-center gap-2 text-purple-300">
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                </div>
-                <p className="mt-5 text-base leading-8 text-slate-200">“{item.quote}”</p>
-                <div className="mt-6 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 text-sm font-bold text-white">
-                    {item.name
-                      .split(' ')
-                      .map((part) => part[0])
-                      .join('')
-                      .slice(0, 2)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white">{item.name}</p>
-                    <p className="text-xs text-slate-400">{item.role}</p>
-                  </div>
-                </div>
-              </motion.article>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-10 rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">FAQ</p>
-              <h3 className="mt-2 text-2xl font-bold text-white">Common questions about the app.</h3>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {faqItems.map((item, index) => {
-              const isOpen = openFaq === index
-              return (
-                <div key={item.q} className="rounded-2xl border border-white/10 bg-slate-950/65">
-                  <button
-                    type="button"
-                    onClick={() => setOpenFaq(isOpen ? -1 : index)}
-                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
-                  >
-                    <span className="text-sm font-semibold text-white">{item.q}</span>
-                    <motion.span animate={{ rotate: isOpen ? 45 : 0 }} transition={{ duration: 0.2 }}>
-                      <ChevronRight className="h-4 w-4 text-purple-300" />
-                    </motion.span>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="overflow-hidden"
-                      >
-                        <p className="px-5 pb-5 text-sm leading-7 text-slate-300">{item.a}</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )
-            })}
-          </div>
-        </section>
+        
 
         <motion.section
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.6 }}
-          className="mt-10 rounded-[2rem] border border-purple-500/20 bg-gradient-to-r from-purple-500/15 via-slate-950/70 to-blue-500/15 p-8 shadow-[0_25px_90px_rgba(0,0,0,0.35)]"
+          className="rounded-[2rem] border border-purple-500/20 bg-gradient-to-r from-purple-500/15 via-slate-950/70 to-blue-500/15 p-8 py-24 shadow-[0_25px_90px_rgba(0,0,0,0.35)]"
         >
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex min-h-[20rem] flex-col items-center justify-center gap-6 text-center lg:gap-8">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-slate-400">CTA</p>
               <h3 className="mt-2 max-w-2xl text-3xl font-black text-white sm:text-4xl">
-                Start Building Your Career with AI
+                Start landing better opportunities
               </h3>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
                 Move from landing page to a protected workspace with live analysis, interview coaching, and job tracking.
@@ -630,19 +489,24 @@ export default function Landing() {
           </div>
         </motion.section>
 
-        <footer className="mt-10 rounded-[2rem] border border-white/10 bg-white/5 px-6 py-6 backdrop-blur-xl sm:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500">
-                <span className="text-sm font-bold text-white">AI</span>
+        <footer className="mt-20 rounded-[2rem] border border-white/10 bg-white/5 px-6 py-6 backdrop-blur-xl sm:px-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_1fr_0.9fr] lg:items-start">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500">
+                  <span className="text-sm font-bold text-white">AI</span>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Agentic AI</p>
+                  <p className="text-sm font-semibold text-white">Resume Coach</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Agentic AI</p>
-                <p className="text-sm font-semibold text-white">Resume Coach</p>
-              </div>
+              <p className="max-w-sm text-sm leading-7 text-slate-400">
+                An AI workspace for resume analysis, interview prep, and job search execution powered by live backend workflows.
+              </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400 lg:justify-center">
               {footerLinks.map((item) => (
                 <button key={item.label} type="button" onClick={() => navigate(item.to)} className="transition-colors hover:text-white">
                   {item.label}
@@ -650,17 +514,22 @@ export default function Landing() {
               ))}
             </div>
 
-            <div className="flex items-center gap-3 text-slate-300">
-              {[Sparkles, ShieldCheck, Cpu].map((Icon, index) => (
-                <a
-                  key={index}
-                  href="#"
-                  onClick={(event) => event.preventDefault()}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-all hover:border-purple-500/30 hover:bg-purple-500/10 hover:text-white"
-                >
-                  <Icon className="h-4 w-4" />
-                </a>
-              ))}
+            <div className="flex flex-wrap items-center gap-3 text-slate-300 lg:justify-end">
+              {socialLinks.map((item) => {
+                const Icon = item.icon
+                return (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm transition-all duration-150 hover:border-purple-500/30 hover:bg-purple-500/10 hover:text-white"
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </a>
+                )
+              })}
             </div>
           </div>
         </footer>

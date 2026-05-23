@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthPanel from '../components/AuthPanel'
-import { getAuthToken } from '../lib/storage'
 import { useAuth } from '../context/AuthContext'
 
 export default function Auth() {
   const navigate = useNavigate()
-  const { login, register, isAuthenticated } = useAuth()
+  const { login, register, isAuthenticated, initializing } = useAuth()
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (getAuthToken() || isAuthenticated) {
+    if (!initializing && isAuthenticated) {
       navigate('/dashboard', { replace: true })
     }
-  }, [navigate, isAuthenticated])
+  }, [navigate, isAuthenticated, initializing])
 
   const handleLogin = async ({ email, password }) => {
     setLoading(true)
