@@ -5,6 +5,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'backend'))
 from fastapi.testclient import TestClient
 from backend.main import app
+# Support environments with newer httpx where TestClient(app) may raise
+# TypeError due to httpx API changes. Try TestClient first, fall back to
+# httpx.Client with ASGITransport when needed.
 import tempfile
 from reportlab.pdfgen import canvas
 import json
@@ -19,7 +22,24 @@ def _print(*a, **k):
     _log_fh.flush()
 print = _print
 
-client = TestClient(app)
+try:
+    client = TestClient(app)
+except TypeError:
+    # Fall back to httpx ASGI transport if TestClient signature is incompatible
+    try:
+        import httpx
+        try:
+            # httpx v0.25+ exposes ASGITransport in httpx._transports.asgi
+            from httpx._transports.asgi import ASGITransport
+        except Exception:
+            # older layout
+            from httpx._transports.asgi import ASGITransport
+
+        transport = ASGITransport(app=app)
+        client = httpx.Client(transport=transport)
+    except Exception:
+        # Re-raise original for visibility if fallback fails
+        raise
 
 # create pdf
 def make_pdf_bytes(text="Senior Python developer with REST API development, Django, Streamlit, SQL, and Git."):
