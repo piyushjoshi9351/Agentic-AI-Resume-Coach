@@ -7,7 +7,7 @@ import logging
 from typing import TypedDict, Any
 from langgraph.graph import StateGraph, END
 
-from agents import (
+from .agents import (
     resume_analyzer_agent,
     job_matcher_agent,
     cover_letter_agent,
@@ -77,7 +77,7 @@ def create_analysis_graph():
     # Add nodes for each agent
     workflow.add_node("resume_analyzer", resume_analyzer_agent)
     workflow.add_node("job_matcher", job_matcher_agent)
-    workflow.add_node("cover_letter", cover_letter_agent)
+    workflow.add_node("cover_letter_writer", cover_letter_agent)
     workflow.add_node("interview_coach", interview_coach_agent)
     
     # Set up the workflow edges (sequential pipeline)
@@ -85,8 +85,8 @@ def create_analysis_graph():
     
     # Define the sequence
     workflow.add_edge("resume_analyzer", "job_matcher")
-    workflow.add_edge("job_matcher", "cover_letter")
-    workflow.add_edge("cover_letter", "interview_coach")
+    workflow.add_edge("job_matcher", "cover_letter_writer")
+    workflow.add_edge("cover_letter_writer", "interview_coach")
     workflow.add_edge("interview_coach", END)
     
     # Compile the graph

@@ -1,6 +1,19 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const normalizeBaseUrl = (value) => value?.trim().replace(/\/+$/, '') || ''
+
+const API_BASE_URL = (() => {
+  const envBaseUrl = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL)
+  if (envBaseUrl) {
+    return envBaseUrl
+  }
+
+  if (import.meta.env.DEV) {
+    return 'http://127.0.0.1:8000'
+  }
+
+  return window.location.origin.replace(/\/+$/, '')
+})()
 
 const api = axios.create({
   baseURL: API_BASE_URL,

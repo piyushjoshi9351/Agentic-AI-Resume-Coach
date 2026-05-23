@@ -10,9 +10,9 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-from ai_schemas import ParsedJobModel
-from services.cache import cache_client
-from services.llm_router import llm_router
+from ..ai_schemas import ParsedJobModel
+from .cache import cache_client
+from .llm_router import llm_router
 
 AI_PROVIDER = os.getenv("AI_PROVIDER", "local").lower()
 

@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from services.llm_router import llm_router
+from ..services.llm_router import llm_router
 
 
 logger = logging.getLogger(__name__)

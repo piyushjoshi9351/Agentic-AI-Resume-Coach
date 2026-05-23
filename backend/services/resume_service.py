@@ -6,7 +6,7 @@ import difflib
 import json
 from typing import Any
 
-from services.llm_router import llm_router
+from .llm_router import llm_router
 
 
 def calculate_resume_diff(original: str, improved: str) -> dict:

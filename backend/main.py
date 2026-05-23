@@ -8,6 +8,7 @@ import io
 import json
 import logging
 import hashlib
+import re
 import time
 import asyncio
 import secrets
@@ -34,21 +35,21 @@ from passlib.context import CryptContext
 # Override stale terminal-session vars so .env edits take effect immediately.
 load_dotenv(override=True)
 
-from graph import create_analysis_graph
-from db import init_db, get_db, User, AnalysisRecord, ResumeVersion, JobApplication, UserProfile
-from database.db import engine as database_engine
-from database.models import Base as DatabaseBase
-from services.cache import cache_client
-from services.job_parser import parse_job_url
-from services.pdf_export import generate_report_pdf_bytes
-from services.resume_service import calculate_resume_diff, generate_improved_resume
-from services.email_service import generate_follow_up_email, generate_interview_preparation_email
-from services.interview_analyzer import analyze_interview_answer
-from interview import generate_interview_questions, evaluate_interview_answer, normalize_transcript, extract_focus_skills
-from services.task_service import create_task, get_task, update_task, TaskStatus
-from ats import parse_resume_text, search_jobs
-from database.models import ATSProgressSnapshot, InterviewAttempt, InterviewSession, ResumeAnalysis
-from database.crud import (
+from .graph import create_analysis_graph
+from .db import init_db, get_db, User, AnalysisRecord, ResumeVersion, JobApplication, UserProfile
+from .database.db import engine as database_engine
+from .database.models import Base as DatabaseBase
+from .services.cache import cache_client
+from .services.job_parser import parse_job_url
+from .services.pdf_export import generate_report_pdf_bytes
+from .services.resume_service import calculate_resume_diff, generate_improved_resume
+from .services.email_service import generate_follow_up_email, generate_interview_preparation_email
+from .services.interview_analyzer import analyze_interview_answer
+from .interview import generate_interview_questions, evaluate_interview_answer, normalize_transcript, extract_focus_skills
+from .services.task_service import create_task, get_task, update_task, TaskStatus
+from .ats import parse_resume_text, search_jobs
+from .database.models import ATSProgressSnapshot, InterviewAttempt, InterviewSession, ResumeAnalysis
+from .database.crud import (
     create_progress_snapshot,
     create_interview_session,
     update_interview_session,
@@ -59,9 +60,9 @@ from database.crud import (
     save_interview_feedback,
     get_user_history,
 )
-from database.schemas import ATSProgressPoint, TimelineResponse, InterviewSessionResponse, ResumeAnalysisCreate, InterviewSessionCreate, ResumeAnalysisResponse
+from .database.schemas import ATSProgressPoint, TimelineResponse, InterviewSessionResponse, ResumeAnalysisCreate, InterviewSessionCreate, ResumeAnalysisResponse
 
-from logging_config import configure_logging, log_json, generate_request_id
+from .logging_config import configure_logging, log_json, generate_request_id
 
 # Configure structured JSON logging
 configure_logging()
@@ -118,10 +119,16 @@ def _load_cors_origins() -> list[str]:
     return origins
 
 
+def _load_cors_origin_regex() -> str:
+    # Allow local dev origins such as Vite on localhost or private LAN IPs.
+    return r"https?://(localhost|127\.0\.0\.1|10\.[0-9.]+|192\.168\.[0-9.]+|172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9.]+):(\d{2,5})"
+
+
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_load_cors_origins(),
+    allow_origin_regex=_load_cors_origin_regex(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

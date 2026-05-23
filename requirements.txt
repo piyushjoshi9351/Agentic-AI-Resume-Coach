@@ -1,18 +1,70 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-langgraph
-langchain-core
-langchain-google-genai
-streamlit
-pypdf
-python-dotenv
-pdfplumber>=0.11.7
-spacy>=3.8.0
-sentence-transformers>=3.0.0
-requests
-psycopg2-binary
-alembic
-openai-whisper
-reportlab
+
+# Core web & ASGI
+pydantic>=2.0
+
+# Database / ORM
+SQLAlchemy==2.0.41
+pg8000>=1.29.0
+alembic>=1.11.0
+
+# Auth / security
+python-jose[cryptography]>=3.3.0
 passlib==1.7.4
 bcrypt==4.0.1
+
+# File / PDF handling
+pypdf==4.0.1
+pdfplumber>=0.11.7
+reportlab>=4.0
+
+# HTTP clients & parsing
+requests==2.32.3
+httpx>=0.24.0
+beautifulsoup4>=4.12.2
+
+# FastAPI extras
+aiofiles>=23.1.0
+python-multipart>=0.0.6
+
+# Logging / config
+python-dotenv>=1.0.0
+python-json-logger>=2.0.4
+
+# Caching / queue
+redis>=4.5.1
+
+# NLP / embeddings / ML (optional/heavy - included per code usage)
+numpy>=1.26.0
+spacy>=3.8.0
+sentence-transformers>=3.0.2
+sentencepiece>=0.1.97
+transformers>=4.35.0
+torch
+openai-whisper
+
+# Parsers / utilities
+pdfminer.six>=20221105
+beautifulsoup4
+
+# LLM & agent frameworks referenced in repo
+langgraph==0.0.21
+langchain-core==0.1.16
+langchain-google-genai
+google-generativeai
+
+# Optional runtime/automation
+playwright>=1.40.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.22.0
+
+# Development / compatibility helpers
+typing-extensions>=4.7.1
+email-validator>=2.2.0
+
+# Notes: heavy packages such as `torch`, `sentence-transformers`, `spacy`, and `openai-whisper`
+# can significantly increase build time and image size. Consider moving them to a
+# separate image or installing them only where needed.

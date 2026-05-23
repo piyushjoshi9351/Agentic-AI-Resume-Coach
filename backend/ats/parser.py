@@ -6,14 +6,20 @@ except ImportError:
     spacy = None
 from pypdf import PdfReader
 
-# Try to load spaCy model; user should run: python -m spacy download en_core_web_sm
-if spacy:
+_NLP = None
+
+
+def _get_nlp():
+    global _NLP
+    if _NLP is not None:
+        return _NLP
+    if not spacy:
+        return None
     try:
-        nlp = spacy.load("en_core_web_sm")
+        _NLP = spacy.load("en_core_web_sm")
     except Exception:
-        nlp = None
-else:
-    nlp = None
+        _NLP = None
+    return _NLP
 
 DEGREE_PATTERNS = r"\b(Bachelor|B\.Sc|BSc|B\.E|BE|BTech|B\.Tech|Master|M\.Sc|MSc|M\.Tech|MTech|MBA|PhD|Doctor|Associate|BS|MS)\b"
 YEARS_PATTERN = r"(19|20)\d{2}"
@@ -51,6 +57,7 @@ def _candidate_skill_phrases(text: str, top_n: int = 80) -> List[str]:
     """Use spaCy to extract noun chunks and entities as candidate skills."""
     candidates: list[str] = []
 
+    nlp = _get_nlp()
     if not nlp:
         # fallback: return visible skill-like phrases from the resume text
         tokens = re.findall(r"[A-Za-z][A-Za-z0-9+#./-]{1,}(?:\s+[A-Za-z0-9][A-Za-z0-9+#./-]{1,}){0,2}", text)
@@ -101,6 +108,7 @@ def extract_experience(text: str) -> List[Dict[str, Any]]:
         if re.search(r"(\b(19|20)\d{2}\b).*(-|to).*(\b(19|20)\d{2}\b|Present)", line, flags=re.I) or "Present" in line:
             experiences.append({"line": line.strip()})
     # fallback: use spaCy for ORG and DATE pairs
+    nlp = _get_nlp()
     if nlp:
         doc = nlp(text)
         cur = {}

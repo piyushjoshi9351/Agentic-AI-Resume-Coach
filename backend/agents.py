@@ -7,14 +7,14 @@ import json
 import logging
 import os
 import re
-from ai_schemas import (
+from .ai_schemas import (
   ResumeAnalysisModel,
   JobMatchModel,
     CoverLetterModel,
   InterviewQuestionsModel,
 )
-from ats import compute_ats_score, extract_skills, match_skills, parse_resume_text
-from services.llm_router import llm_router
+from .ats import compute_ats_score, extract_skills, parse_resume_text
+from .services.llm_router import llm_router
 
 logger = logging.getLogger(__name__)
 
@@ -313,6 +313,8 @@ def _job_match_local(
     resume_analysis: dict,
     parsed_resume_data: dict | None = None,
 ) -> dict:
+    from .ats.skill_matcher import match_skills
+
     parsed_resume_data = parsed_resume_data if isinstance(parsed_resume_data, dict) else {}
     resume_profile = _resume_profile_from_state(resume_text, parsed_resume_data)
     resume_skills = _unique_preserve_order([_normalize(skill) for skill in (resume_profile.get("skills", []) or []) if skill])

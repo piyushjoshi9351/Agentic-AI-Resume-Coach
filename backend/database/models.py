@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .db import Base
 
 
@@ -8,7 +8,7 @@ class ResumeAnalysis(Base):
     __tablename__ = "resume_analyses"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
     ats_score = Column(Float, nullable=True)
     matched_skills = Column(JSON, nullable=True)
     missing_skills = Column(JSON, nullable=True)
@@ -16,35 +16,25 @@ class ResumeAnalysis(Base):
     raw_report = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", backref="resume_analyses")
-
 
 class InterviewFeedback(Base):
     __tablename__ = "interview_feedback"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=True)
     feedback = Column(JSON, nullable=True)
     score = Column(Float, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", backref="interview_feedback")
-from datetime import datetime
-
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from db import Base
-
 
 class ATSProgressSnapshot(Base):
     __tablename__ = "ats_progress_snapshots"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    analysis_id: Mapped[int | None] = mapped_column(ForeignKey("analysis_records.id"), nullable=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    analysis_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     ats_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     semantic_match_percent: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     skill_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
@@ -61,8 +51,8 @@ class InterviewSession(Base):
     __table_args__ = {"extend_existing": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    analysis_id: Mapped[int | None] = mapped_column(ForeignKey("analysis_records.id"), nullable=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    analysis_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     session_token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     question_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     current_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

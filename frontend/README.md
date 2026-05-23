@@ -62,6 +62,8 @@ npm run dev
 
 The frontend will be available at: **http://localhost:5173**
 
+If your backend is not running on the same origin, set `VITE_API_BASE_URL` in a local `.env` file before starting the app.
+
 ### 3. Build for Production
 
 ```bash

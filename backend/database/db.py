@@ -3,9 +3,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./dev_database.db")
+IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 # Create engine with sensible defaults
-engine = create_engine(DATABASE_URL, future=True)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if IS_SQLITE else {},
+    future=True,
+)
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -22,4 +27,7 @@ def get_db():
         yield db
     finally:
         db.close()
-from db import DATABASE_URL, IS_SQLITE, Base, SessionLocal, engine, get_db, init_db
+
+
+def init_db() -> None:
+    Base.metadata.create_all(bind=engine)

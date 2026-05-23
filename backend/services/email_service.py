@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from services.llm_router import llm_router
+from .llm_router import llm_router
 
 
 def _fallback_follow_up_email(company: str, role: str, context: str) -> dict:
