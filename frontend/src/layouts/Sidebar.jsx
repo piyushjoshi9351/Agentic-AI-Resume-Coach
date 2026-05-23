@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Briefcase, LayoutDashboard, Menu, MessageSquare, PanelLeftClose, PanelRightClose, ScanSearch, Sparkles, LogOut, Wrench } from 'lucide-react'
+import { Briefcase, LayoutDashboard, Menu, MessageSquare, PanelLeftClose, PanelRightClose, ScanSearch, Sparkles, LogOut, Wrench, History as HistoryIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const navigationItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/analyze', label: 'Analyze Resume', icon: ScanSearch },
   { to: '/results', label: 'Results', icon: Sparkles },
+  { to: '/history', label: 'History', icon: HistoryIcon },
   { to: '/interview', label: 'AI Interview', icon: MessageSquare },
   { to: '/job-tracker', label: 'Job Tracker', icon: Briefcase },
   { to: '/tools', label: 'Tools', icon: Wrench },
@@ -108,7 +109,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          {renderNavItems(false)}
+            {renderNavItems(false)}
         </nav>
 
         <div className="border-t border-white/10 p-3">

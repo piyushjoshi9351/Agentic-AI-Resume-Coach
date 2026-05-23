@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Activity, ArrowRight, BarChart3, BrainCircuit, Clock3, FileText, PlayCircle, Sparkles, TrendingUp } from 'lucide-react'
 import SkillMatchChart from '../components/dashboard/SkillMatchChart'
-import { getAnalyticsSummary, getCurrentUser, getHistory, getInterviewHistory } from '../services/api'
+import { useAuth } from '../context/AuthContext'
+import { useAnalysisHistory } from '../context/AnalysisHistoryContext'
 import { setLatestAnalysis } from '../lib/storage'
 
 function formatTimestamp(value) {
@@ -70,37 +71,63 @@ function AnimatedCounter({ value, prefix = '', suffix = '', decimals = 0 }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [user, setUser] = useState(null)
-  const [history, setHistory] = useState([])
-  const [analytics, setAnalytics] = useState(null)
-  const [interviewHistory, setInterviewHistory] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
+  const { analysisHistory } = useAnalysisHistory()
+  const [loading] = useState(false)
 
-  useEffect(() => {
-    const loadDashboard = async () => {
-      setLoading(true)
-      try {
-        const [userResult, historyResult, analyticsResult, interviewResult] = await Promise.all([
-          getCurrentUser(),
-          getHistory(),
-          getAnalyticsSummary(),
-          getInterviewHistory(),
-        ])
-
-        setUser(userResult)
-        setHistory(Array.isArray(historyResult) ? historyResult : [])
-        setAnalytics(analyticsResult)
-        setInterviewHistory(Array.isArray(interviewResult) ? interviewResult : [])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadDashboard()
-  }, [])
+  const history = useMemo(() => analysisHistory.map((item) => ({
+    id: item.id,
+    analysis_id: item.analysisId,
+    resume_filename: item.resumeFileName,
+    created_at: item.createdAt,
+    resume_analysis: item.fullPayload?.resume_analysis || {},
+    job_match: {
+      ...(item.fullPayload?.job_match || {}),
+      ats_match_score: item.atsScore,
+      confidence: (Number(item.confidenceScore || 0) / 100),
+      score_breakdown: item.scoreBreakdowns || item.fullPayload?.job_match?.score_breakdown || {},
+    },
+  })), [analysisHistory])
 
   const latestAnalysis = useMemo(() => getLatestAnalysis(history), [history])
   const recentAnalyses = useMemo(() => history.slice(0, 5), [history])
+
+  const computedAnalytics = useMemo(() => {
+    const items = Array.isArray(history) ? history : []
+    const atsScores = []
+    const missingCounter = {}
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+    let analysesLast7 = 0
+
+    items.forEach((it) => {
+      const score = Number(it.job_match?.ats_match_score)
+      if (!Number.isNaN(score)) atsScores.push(score)
+      const missing = it.job_match?.missing_skills || []
+      if (Array.isArray(missing)) {
+        missing.forEach((m) => {
+          const name = typeof m === 'string' ? m : m?.skill || String(m)
+          if (name) missingCounter[name] = (missingCounter[name] || 0) + 1
+        })
+      }
+      const created = new Date(it.created_at)
+      if (!Number.isNaN(created.getTime()) && created >= sevenDaysAgo) analysesLast7 += 1
+    })
+
+    const avg = atsScores.length ? Math.round((atsScores.reduce((a, b) => a + b, 0) / atsScores.length) * 100) / 100 : 0
+    const best = atsScores.length ? Math.round(Math.max(...atsScores) * 100) / 100 : 0
+    const topMissing = Object.entries(missingCounter).sort((a, b) => b[1] - a[1]).slice(0, 5).map((x) => x[0])
+
+    return {
+      total_analyses: items.length,
+      avg_ats_score: avg,
+      best_ats_score: best,
+      analyses_last_7_days: analysesLast7,
+      top_missing_skills: topMissing,
+      ats_progress_timeline: [],
+      recent_interview_sessions: [],
+    }
+  }, [history])
 
   const skillChartData = useMemo(() => {
     if (!latestAnalysis?.resume_analysis || !latestAnalysis?.job_match) return null
@@ -113,13 +140,13 @@ export default function Dashboard() {
   const statCards = [
     {
       label: 'Total Analyses',
-      value: analytics?.total_analyses ?? history.length,
+      value: computedAnalytics?.total_analyses ?? history.length,
       icon: BarChart3,
       accent: 'from-purple-500/25 to-fuchsia-500/25',
     },
     {
       label: 'Average ATS Score',
-      value: analytics?.avg_ats_score ?? 0,
+      value: computedAnalytics?.avg_ats_score ?? 0,
       suffix: '%',
       decimals: 1,
       icon: TrendingUp,
@@ -127,23 +154,23 @@ export default function Dashboard() {
     },
     {
       label: 'Best ATS Score',
-      value: analytics?.best_ats_score ?? 0,
+      value: computedAnalytics?.best_ats_score ?? 0,
       suffix: '%',
       decimals: 1,
       icon: Sparkles,
       accent: 'from-purple-500/25 to-blue-500/25',
     },
     {
-      label: 'Interview Sessions',
-      value: analytics?.recent_interview_sessions?.length ?? interviewHistory.length,
-      icon: PlayCircle,
+      label: 'Analyses (7 Days)',
+      value: computedAnalytics?.analyses_last_7_days ?? 0,
+      icon: Clock3,
       accent: 'from-emerald-500/20 to-teal-500/20',
     },
   ]
 
   const aiTips = useMemo(() => {
     const tips = []
-    const missing = analytics?.top_missing_skills || []
+    const missing = computedAnalytics?.top_missing_skills || []
 
     if (missing.length) {
       tips.push(`Focus on ${missing.slice(0, 3).join(', ')} in your next resume revision.`)
@@ -158,7 +185,7 @@ export default function Dashboard() {
     }
 
     return tips.slice(0, 3)
-  }, [analytics, latestAnalysis])
+  }, [computedAnalytics, latestAnalysis])
 
   const activityFeed = useMemo(() => {
     const items = []
@@ -172,17 +199,8 @@ export default function Dashboard() {
       })
     })
 
-    interviewHistory.slice(0, 3).forEach((session) => {
-      items.push({
-        id: `interview-${session.id}`,
-        type: 'Interview session',
-        title: `Session #${session.id}`,
-        meta: `${formatTimestamp(session.created_at)} • ${session.status || 'active'}`,
-      })
-    })
-
     return items.slice(0, 5)
-  }, [recentAnalyses, interviewHistory])
+  }, [recentAnalyses])
 
   const handleOpenAnalysis = (item) => {
     setLatestAnalysis({ ...item, analysis_id: item.id })

@@ -55,9 +55,11 @@ export default function Analyze() {
     const response = await analyzeResume(resumeFile, effectiveJobDescription, effectiveJobUrl)
 
     if (response.success) {
-      setLatestAnalysis(response.data)
-      const nextAnalysisId = response.data?.analysis_id
-      navigate(nextAnalysisId != null ? `/results/${nextAnalysisId}` : '/results', { state: { results: response.data } })
+      // attach the uploaded resume filename so results/history can display original name
+      const enriched = { ...response.data, resume_filename: resumeFile?.name || response.data?.resume_filename }
+      setLatestAnalysis(enriched)
+      const nextAnalysisId = enriched?.analysis_id
+      navigate(nextAnalysisId != null ? `/results/${nextAnalysisId}` : '/results', { state: { results: enriched } })
     } else {
       setError(response.error)
     }

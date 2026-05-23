@@ -40,3 +40,53 @@ export const clearLatestAnalysis = () => {
   localStorage.removeItem(LATEST_ANALYSIS_KEY)
   localStorage.removeItem(LATEST_ANALYSIS_ID_KEY)
 }
+
+export const SAVED_ANALYSES_KEY = 'saved_analyses'
+
+export const getSavedAnalyses = () => {
+  const raw = localStorage.getItem(SAVED_ANALYSES_KEY)
+  if (!raw) return []
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return []
+  }
+}
+
+export const setSavedAnalyses = (arr = []) => {
+  try {
+    localStorage.setItem(SAVED_ANALYSES_KEY, JSON.stringify(arr))
+  } catch {
+    // ignore quota errors
+  }
+}
+
+export const addSavedAnalysis = (analysis) => {
+  if (!analysis) return
+  const list = getSavedAnalyses()
+  // normalize an id for local items
+  const id = analysis.analysis_id != null ? String(analysis.analysis_id) : `local-${Date.now()}`
+  const item = {
+    id,
+    analysis_id: analysis.analysis_id ?? null,
+    created_at: analysis.created_at || new Date().toISOString(),
+    resume_filename: analysis.resume_filename || analysis.filename || 'resume.pdf',
+    resume_analysis: analysis.resume_analysis || {},
+    job_match: analysis.job_match || {},
+    raw: analysis,
+  }
+  // prepend newest
+  list.unshift(item)
+  // keep last 50
+  setSavedAnalyses(list.slice(0, 50))
+  try {
+    window.dispatchEvent(new CustomEvent('saved-analyses-changed', { detail: item }))
+  } catch {
+    // ignore
+  }
+}
+
+export const removeSavedAnalysis = (id) => {
+  const list = getSavedAnalyses().filter((i) => String(i.id) !== String(id))
+  setSavedAnalyses(list)
+}

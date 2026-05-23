@@ -6,6 +6,7 @@ import ResultsTabs from '../components/ResultsTabs'
 import ATSGauge from '../components/dashboard/ATSGauge'
 import { downloadReport } from '../services/api'
 import { getLatestAnalysis, setLatestAnalysis } from '../lib/storage'
+import { useAnalysisHistory } from '../context/AnalysisHistoryContext'
 
 function ResultsSkeleton() {
   return (
@@ -36,6 +37,7 @@ export default function Results() {
   const { analysisId } = useParams()
   const [results, setResults] = useState(null)
   const [isHydrating, setIsHydrating] = useState(true)
+  const { saveAnalysis, isAnalysisSaved } = useAnalysisHistory()
 
   useEffect(() => {
     const routeResults = location.state?.results || null
@@ -81,6 +83,33 @@ export default function Results() {
     anchor.click()
     anchor.remove()
     window.URL.revokeObjectURL(url)
+  }
+
+  const isSaved = useMemo(() => isAnalysisSaved(results), [isAnalysisSaved, results])
+
+  const handleSave = () => {
+    if (!results) return
+    const savePayload = {
+      id: results.analysis_id != null ? `analysis-${results.analysis_id}` : null,
+      resumeName: results?.resume_analysis?.name || results?.resume_filename || 'Resume Analysis',
+      resumeFileName: results?.resume_filename || 'resume.pdf',
+      atsScore,
+      matchPercentage,
+      confidenceScore,
+      skills: results?.resume_analysis?.skills || {},
+      strengths: results?.resume_analysis?.strengths || [],
+      weaknesses: results?.resume_analysis?.weaknesses || [],
+      areasToImprove: results?.resume_analysis?.areas_for_improvement || results?.job_match?.missing_skills || [],
+      recommendations: [results?.job_match?.recommendation].filter(Boolean),
+      keywords: results?.job_match?.keywords || results?.job_match?.matching_skills || [],
+      experienceData: results?.resume_analysis?.experience || results?.resume_analysis?.experience_analysis || {},
+      allScoreBreakdowns: results?.job_match?.score_breakdown || {},
+      fullPayload: results,
+      date: new Date().toLocaleDateString(),
+      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    }
+    saveAnalysis(savePayload)
   }
 
   if (isHydrating) {
@@ -214,6 +243,14 @@ export default function Results() {
           <ArrowLeft className="h-4 w-4" />
           Back to Analyze
         </Link>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaved}
+          className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-gradient-to-r from-purple-500 to-blue-500 px-5 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSaved ? 'Already Saved' : 'Save to History'}
+        </button>
       </div>
     </motion.div>
   )
