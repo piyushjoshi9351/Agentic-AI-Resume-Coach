@@ -21,7 +21,9 @@ reportlab>=4.0
 
 # HTTP clients & parsing
 requests==2.32.3
-httpx>=0.24.0
+# Pin httpx to 0.24.x to keep compatibility with Starlette/FastAPI TestClient
+# (httpx 0.25+ changed internal API and can break TestClient(app)).
+httpx==0.24.1
 beautifulsoup4>=4.12.2
 
 # FastAPI extras
