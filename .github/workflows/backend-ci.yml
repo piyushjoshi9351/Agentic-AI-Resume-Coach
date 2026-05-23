@@ -25,6 +25,10 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           # keep credentials for any further git operations
           persist-credentials: true
+          # avoid trying to fetch submodules or LFS which can trigger auth prompts
+          submodules: false
+          lfs: false
+          clean: true
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
