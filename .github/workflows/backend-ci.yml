@@ -12,10 +12,19 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: true
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # fetch full history so refs like pull/*/merge are available
+          fetch-depth: 0
+          # explicitly pass the runner token
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # keep credentials for any further git operations
+          persist-credentials: true
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
