@@ -1,215 +1,169 @@
-# 🚀 AI Resume & Job Coach 🤖
+<!--
+        PR-ready README
+        - Do NOT add secrets, API keys, or private data to this file or to the repository.
+        - Use `.env.example` as the template for environment variables; commit only the example file.
+        - Replace the image/GIF placeholders in the `docs/` folder; do not embed binary assets directly in README.
+-->
 
-### Land Interviews Faster with a Multi-Agent Career Intelligence System
+# AI Resume & Job Coach
 
-![Banner](https://img.shields.io/badge/AI%20Resume%20%26%20Job%20Coach-Multi--Agent%20Career%20Engine-7c3aed?style=for-the-badge)
+Multi-agent resume analysis, ATS scoring, cover-letter generation, and interview coaching.
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
-![LangGraph](https://img.shields.io/badge/LangGraph-Orchestration-111827)
-![Google Gemini](https://img.shields.io/badge/Google%20Gemini%20%2F%20Local-Fallback-4285F4?logo=google&logoColor=white)
-![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=111827)
-![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
+![Project Badge](https://img.shields.io/badge/AI%20Resume%20%26%20Job%20Coach-Ready-brightgreen)
 
-AI Resume & Job Coach is a full-stack application that analyzes resumes against job descriptions using a coordinated 4-agent pipeline.
-It combines LangGraph orchestration, FastAPI APIs, and a dark-mode React UI.
-The app delivers ATS match scoring, skill-gap insights, personalized cover letters, and interview coaching in one workflow.
-When Gemini is unavailable or disabled, the backend uses deterministic local fallback logic so the app still returns useful output.
+Short, focused README for PRs and contributors. This document intentionally omits any private keys or sensitive information.
 
-## ✨ How It Works
+## Quick links
 
-### Multi-Agent Pipeline (ASCII Diagram)
+- Code: [backend](backend/) and [frontend](frontend/)
+- Demo (local): http://localhost:5173
+- Contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md) (see below)
 
-```
-[Resume PDF + Job Description]
-             |
-             v
-   [Agent 1: Resume Analyzer]
-             |
-             v
-     [Agent 2: Job Matcher]
-             |
-             v
-   [Agent 3: Cover Letter Writer]
-             |
-             v
-    [Agent 4: Interview Coach]
-             |
-             v
-[ATS Score + Skill Gaps + Cover Letter + Interview Prep]
-```
+---
 
-### Agent Responsibilities
+## What it does
 
-| Agent | Role | Output |
-|---|---|---|
-| Agent 1 | Resume Analyzer | Skills, experience, education, strengths, weaknesses |
-| Agent 2 | Job Matcher | ATS score, matched skills, missing skills, fit recommendation |
-| Agent 3 | Cover Letter Writer | 4-paragraph tailored cover letter |
-| Agent 4 | Interview Coach | 8 structured interview questions with strong answer frameworks |
+This repository implements a coordinated, multi-agent pipeline to analyze a candidate's resume against a job description and produce:
 
-## 🌟 Features
+- An ATS-style match score and matched/missing skills
+- Actionable skill-gap recommendations
+- A tailored cover letter draft
+- Practice interview questions and answer scaffolding
 
-- 📄 Resume PDF parsing and structured intelligence extraction
-- 🎯 ATS match scoring with explainable fit signals
-- 🧩 Skill gap analysis with actionable recommendations
-- ✍️ Personalized cover letter generation
-- 🎤 Interview prep with technical, behavioral, role-specific, and tricky questions
-- ⚡ Multi-agent orchestration powered by LangGraph
-- 🖥️ Premium responsive React UI with rich animations
+The system is built to run locally with a deterministic fallback when cloud LLMs (e.g., Google Gemini) are unavailable.
 
-## 🧰 Tech Stack
+## Project status
 
-| Layer | Technology |
-|---|---|
-| Language | Python, JavaScript |
-| Backend API | FastAPI, Uvicorn |
-| AI Orchestration | LangGraph |
-| LLM | Google Gemini or local fallback |
-| AI SDK | langchain-google-genai, langchain-core |
-| PDF Processing | pypdf |
-| Frontend | React 18, Vite |
-| UI Styling | Tailwind CSS, Lucide Icons |
+- Backend: FastAPI services and LangGraph orchestration
+- Frontend: React + Vite + Tailwind UI
+- Local-first: Works without cloud API keys using fallback logic
 
-## ⚙️ Setup Instructions
+If you open a PR, follow the checklist below and avoid adding secrets to commits.
 
-### 1. Prerequisites
+---
+
+## Screenshots & GIFs (placeholders)
+
+Replace these placeholders in `docs/` and reference them here. Do NOT commit real credentials or private data into the repository.
+
+- Demo hero GIF (replace): docs/gifs/demo-hero.gif  <!-- add your GIF here -->
+- Screenshot: docs/screenshots/resume-analysis.png
+
+Tip: Use small, optimized GIFs or a short MP4. Keep images in `docs/` and reference them from README.
+
+---
+
+## Requirements
 
 - Python 3.10+
-- Node.js 18+
-- npm 9+
-- Google API key only if you want Gemini mode; local fallback works without it
+- Node.js 18+ and npm 9+
 
-### 2. Clone Repository
+## Local development (quick)
+
+1. Clone the repo
 
 ```bash
 git clone https://github.com/piyushjoshi9351/Agentic-AI-Resume-Coach.git
 cd Agentic-AI-Resume-Coach
 ```
 
-### 3. Backend Setup
+2. Backend (local)
 
 ```bash
 cd backend
 python -m venv .venv
-```
-
-Windows:
-
-```bash
+# Activate the venv (Windows)
 .venv\Scripts\activate
-```
-
-macOS/Linux:
-
-```bash
+# macOS / Linux
 source .venv/bin/activate
-```
-
-Install backend dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
-Create environment file in backend folder. Never commit your real API keys or secrets:
-
-```env
-GOOGLE_API_KEY=your_google_api_key_here
-JWT_SECRET_KEY=replace_with_a_long_random_secret
-AI_PROVIDER=local
-```
-
-### 4. Frontend Setup
+Create a `backend/.env` file from the template. Do NOT commit real secrets.
 
 ```bash
-cd ../frontend
-npm install
+cp backend/.env.example backend/.env
+# Edit backend/.env locally with real secrets (never commit)
 ```
 
-### 5. Run the App
+3. Frontend
 
-Start backend (terminal 1):
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+4. Start backend API
 
 ```bash
 cd backend
 python main.py
 ```
 
-Start frontend (terminal 2):
+Open http://localhost:5173 and try the Analyze flow.
 
-```bash
-cd frontend
-npm run dev
-```
+---
 
-Open the frontend at http://localhost:5173 or the next available Vite port if 5173 is busy.
+## Environment variables (example)
 
-## 🚀 Deployment
+Only list variable names here. Never paste actual secrets.
 
-### Recommended: Render
+- Backend (example only):
+        - `AI_PROVIDER` (local|gemini)
+        - `DATABASE_URL`
+        - `JWT_SECRET_KEY` (store securely)
+        - `GOOGLE_API_KEY` (only if using Gemini)
 
-This repo includes a `render.yaml` blueprint for a live backend and a separate static frontend.
+- Frontend:
+        - `VITE_API_BASE_URL`
 
-1. Push the repo to GitHub.
-2. Create a new Render blueprint from `render.yaml`.
-3. Set `VITE_API_BASE_URL` on the frontend to your deployed backend URL.
-4. Set `CORS_ORIGINS` or `FRONTEND_URL` on the backend to your deployed frontend URL.
-5. Use managed PostgreSQL in production. SQLite is for local development only.
+Create a `backend/.env.example` (or update it) and commit that — do not commit `backend/.env`.
 
-### Environment Variables
+---
 
-- Backend: `AI_PROVIDER`, `JWT_SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `GOOGLE_API_KEY` if Gemini is enabled
-- Frontend: `VITE_API_BASE_URL`
+## Tests & linting
 
-## 📸 Screenshots
+- Backend: run unit tests in `backend/` (if present) with your Python test runner
+- Frontend: `npm --prefix frontend run lint` and `npm --prefix frontend run build`
 
-> Add your screenshots after the first demo run.
+---
 
-- Hero + input screen: `docs/screenshots/hero-input.png`
-- Agent progress loading: `docs/screenshots/agent-progress.png`
-- Resume analysis tab: `docs/screenshots/resume-analysis.png`
-- ATS match tab: `docs/screenshots/job-match.png`
-- Cover letter tab: `docs/screenshots/cover-letter.png`
-- Interview prep tab: `docs/screenshots/interview-prep.png`
+## Deployment notes
 
-## 🗂️ Project Structure
+- This repository includes a `render.yaml` for Render deploys and a `Dockerfile` for container builds.
+- In production, use a managed database, secure env management, and rotate keys regularly.
 
-```text
-ai-resume-coach/
-├── backend/
-│   ├── main.py
-│   ├── agents.py
-│   ├── graph.py
-│   ├── config.py
-│   ├── requirements.txt
-│   └── .env
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── services/
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── package.json
-│   └── tailwind.config.js
-├── README.md
-└── .gitignore
-```
+---
 
-## 💎 Why This Project Is Unique
+## Contribution & PR checklist
 
-- It demonstrates true multi-agent coordination instead of a single prompt chain.
-- It fuses product UX and AI engineering into a deployable full-stack system.
-- It outputs recruiter-relevant artifacts, not just generic text generation.
-- It is portfolio-ready for AI Engineer, Full-Stack AI, and Applied LLM roles.
+Before opening a PR:
 
-## 🔒 Security Notes
+1. Run linters and tests for changed modules.
+2. Remove any hard-coded credentials or debug prints.
+3. Add/update docs/screenshots in `docs/` — use placeholders in README until assets are added.
+4. Add a short PR description and test steps.
 
-- Real secrets belong in `backend/.env` and should stay out of Git.
-- Use `.env.example` as the template for new environments.
-- If Gemini quota is unavailable, set `AI_PROVIDER=local` to keep the app usable.
+Recommended PR template content (short):
 
-## 📄 License
+- What changed and why
+- How to test locally
+- Any env vars required (do not include values)
 
-This project is licensed under the MIT License.
+---
+
+## Security & privacy
+
+- Never commit keys, passwords, or private files. Use `backend/.env` locally and keep it out of Git.
+- If a secret is accidentally committed, rotate it immediately and remove it from history.
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+If you want, I can also create or update `backend/.env.example`, add a short `CONTRIBUTING.md`, and insert GIF placeholders into `docs/` for this PR.
