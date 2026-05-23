@@ -1,16 +1,14 @@
 import sys
 import pathlib
+import asyncio
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 # Also ensure backend dir is on path so imports like `import graph` resolve
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'backend'))
-from fastapi.testclient import TestClient
 from backend.main import app
-# Support environments with newer httpx where TestClient(app) may raise
-# TypeError due to httpx API changes. Try TestClient first, fall back to
-# httpx.Client with ASGITransport when needed.
 import tempfile
 from reportlab.pdfgen import canvas
 import json
+import httpx
 
 # Capture prints to a log file for CI-style verification
 _log_file = pathlib.Path(__file__).resolve().parents[1] / 'scripts' / 'smoke_client_log.txt'
@@ -23,23 +21,9 @@ def _print(*a, **k):
 print = _print
 
 try:
-    client = TestClient(app)
-except TypeError:
-    # Fall back to httpx ASGI transport if TestClient signature is incompatible
-    try:
-        import httpx
-        try:
-            # httpx v0.25+ exposes ASGITransport in httpx._transports.asgi
-            from httpx._transports.asgi import ASGITransport
-        except Exception:
-            # older layout
-            from httpx._transports.asgi import ASGITransport
-
-        transport = ASGITransport(app=app)
-        client = httpx.Client(transport=transport)
-    except Exception:
-        # Re-raise original for visibility if fallback fails
-        raise
+    from httpx import ASGITransport
+except Exception:
+    from httpx._transports.asgi import ASGITransport
 
 # create pdf
 def make_pdf_bytes(text="Senior Python developer with REST API development, Django, Streamlit, SQL, and Git."):
@@ -54,49 +38,50 @@ def make_pdf_bytes(text="Senior Python developer with REST API development, Djan
         "and worked with SQL, Git, Docker, and cloud-hosted services across multiple teams.",
     ]
     y = 720
-    for line in lines:
+    async def main():
+        transport = ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            # Register
+            email = f"smoke+test@example.com"
+            r = await client.post('/auth/register', json={"name": "Smoke Tester", "email": email, "password": "Password123"})
+            print('register', r.status_code, r.json() if r.status_code==200 else r.text)
+            token = r.json().get('access_token')
+            headers = {'Authorization': f'Bearer {token}'}
         c.drawString(72, y, line)
-        y -= 18
-    c.showPage()
-    c.save()
-    buffer.seek(0)
-    return buffer.read()
+            # Analyze
+            pdf_bytes = make_pdf_bytes()
+            files = { 'resume': ('resume.pdf', pdf_bytes, 'application/pdf') }
+            data = { 'job_description': 'Looking for a Python developer with REST API development, Django, Streamlit, SQL, and Git.' }
+            resp = await client.post('/analyze', files=files, data=data, headers=headers)
+            print('analyze', resp.status_code)
+            if resp.status_code!=200:
+                print(resp.text)
+                return
+            analysis = resp.json()
+            print('analysis id', analysis.get('analysis_id'))
 
-
-def main():
-    # Register
-    email = f"smoke+test@example.com"
-    r = client.post('/auth/register', json={"name": "Smoke Tester", "email": email, "password": "Password123"})
-    print('register', r.status_code, r.json() if r.status_code==200 else r.text)
-    token = r.json().get('access_token')
-    headers = {'Authorization': f'Bearer {token}'}
-
-    # Analyze
-    pdf_bytes = make_pdf_bytes()
-    files = { 'resume': ('resume.pdf', pdf_bytes, 'application/pdf') }
+            # Start interview
+            start = await client.post('/interview/session/start', json={'analysis_id': analysis.get('analysis_id')}, headers=headers)
+            print('start interview', start.status_code)
+            session = start.json()
+            sid = session.get('session_id')
+            print('session id', sid)
     data = { 'job_description': 'Looking for a Python developer with REST API development, Django, Streamlit, SQL, and Git.' }
-    resp = client.post('/analyze', files=files, data=data, headers=headers)
-    print('analyze', resp.status_code)
-    if resp.status_code!=200:
-        print(resp.text)
-        return
-    analysis = resp.json()
+            # Evaluate
+            questions = session.get('questions', [])
+            if questions:
+                q = questions[0].get('question') if isinstance(questions[0], dict) else questions[0]
+                ev = await client.post('/interview/session/evaluate', json={'session_id': sid, 'question_index': 0, 'question': q, 'answer': 'I have solid experience building REST APIs using Django and FastAPI.'}, headers=headers)
+                print('evaluate', ev.status_code, ev.json())
     print('analysis id', analysis.get('analysis_id'))
-
-    # Start interview
-    start = client.post('/interview/session/start', json={'analysis_id': analysis.get('analysis_id')}, headers=headers)
-    print('start interview', start.status_code)
-    session = start.json()
-    sid = session.get('session_id')
+            # Get history
+            ats = await client.get('/api/history/ats', headers=headers)
+            inter = await client.get('/api/history/interviews', headers=headers)
+            print('ats history', ats.status_code, len(ats.json()) if ats.status_code==200 else ats.text)
+            print('interview history', inter.status_code, len(inter.json()) if inter.status_code==200 else inter.text)
     print('session id', sid)
-
-    # Evaluate
-    questions = session.get('questions', [])
-    if questions:
-        q = questions[0].get('question') if isinstance(questions[0], dict) else questions[0]
-        ev = client.post('/interview/session/evaluate', json={'session_id': sid, 'question_index': 0, 'question': q, 'answer': 'I have solid experience building REST APIs using Django and FastAPI.'}, headers=headers)
         print('evaluate', ev.status_code, ev.json())
-
+        asyncio.run(main())
     # Get history
     ats = client.get('/api/history/ats', headers=headers)
     inter = client.get('/api/history/interviews', headers=headers)
