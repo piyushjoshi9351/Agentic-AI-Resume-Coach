@@ -1,8 +1,1 @@
-register 200 {'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4IiwiZW1haWwiOiJzbW9rZSt0ZXN0QGV4YW1wbGUuY29tIiwiZXhwIjoxNzc5NDE3NDM0fQ.N3O1F2U5EOxZUcjY1Pul4Sv1Zw9qzFk5gXd1sb_0P6g', 'token_type': 'bearer', 'user': {'id': 8, 'name': 'Smoke Tester', 'email': 'smoke+test@example.com', 'created_at': '2026-05-21T19:07:14.382687'}}
-analyze 200
-analysis id 4
-start interview 200
-session id 307Oc0_nX10dSc3RdMy7qQ
-evaluate 200 {'session_id': '307Oc0_nX10dSc3RdMy7qQ', 'question_index': 0, 'score_out_of_10': 4.3, 'strengths': ['Provides an attempt at answering the question.'], 'improvements': ['Add more concrete technical details and tradeoffs.', 'Use a cleaner structure like STAR or a problem-solution-impact flow.', 'State your ownership and decisions more directly.', 'Tie the answer more directly to the question and role.'], 'technical_depth': 3.0, 'clarity': 4.5, 'confidence': 6.0, 'communication': 6.0, 'relevance': 3.0, 'transcript': 'I have solid experience building REST APIs using Django and FastAPI.', 'completed': False, 'next_question': {'question_number': 2, 'type': 'technical', 'question': 'How did you connect With rest api with LangGraph or backend orchestration in this project?', 'answer_hint': 'Explain architecture, data flow, and why the design was chosen.'}}
-ats history 200 1
-interview history 200 1
+register 200 {'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMiIsImVtYWlsIjoic21va2UrZjkyYTYzNDViYzM5QGV4YW1wbGUuY29tIiwiZXhwIjoxNzc5NjczOTE1fQ.FFKk074wt8g7AZ1pQnTfUXr8fxxjTg40ENCOi7xJZr4', 'token_type': 'bearer', 'user': {'id': 12, 'name': 'Smoke Tester', 'email': 'smoke+f92a6345bc39@example.com', 'created_at': '2026-05-24T18:21:55.139241'}}
