@@ -66,6 +66,7 @@ pytest-asyncio>=0.22.0
 # Development / compatibility helpers
 typing-extensions>=4.7.1
 email-validator>=2.2.0
+psycopg2-binary==2.9.9
 
 # Notes: heavy packages such as `torch`, `sentence-transformers`, `spacy`, and `openai-whisper`
 # can significantly increase build time and image size. Consider moving them to a
