@@ -8,8 +8,8 @@ from typing import Any, Type
 from pydantic import BaseModel, ValidationError
 
 DEFAULT_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "45"))
-PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-2.0-flash")
-FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-2.0-flash-lite")
+PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-1.5-flash")
+FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-1.5-flash")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "local").lower()
 DEBUG_LLM_ERRORS = os.getenv("DEBUG_LLM_ERRORS", "false").lower() in {"1", "true", "yes"}
 
@@ -72,12 +72,16 @@ class LLMRouter:
         try:
             return self._invoke_with_timeout(self.primary, messages, timeout_seconds).content.strip()
         except Exception as primary_error:
+            import logging
+            logging.getLogger(__name__).error("Gemini primary model failed: %s", primary_error, exc_info=True)
             if DEBUG_LLM_ERRORS:
                 print(f"AI ERROR: {primary_error}")
                 raise primary_error
             try:
                 return self._invoke_with_timeout(self.fallback, messages, timeout_seconds).content.strip()
             except Exception as fallback_error:
+                import logging
+                logging.getLogger(__name__).error("Gemini fallback model failed: %s", fallback_error, exc_info=True)
                 if DEBUG_LLM_ERRORS:
                     print(f"AI ERROR: {fallback_error}")
                     raise fallback_error
@@ -117,15 +121,15 @@ class LLMRouter:
             except Exception:
                 continue
 
+        error_message = (
+            "LLM pipeline failed strict JSON/schema validation. "
+            "Inspect the earlier Gemini error logs in the backend output."
+        )
+        import logging
+        logging.getLogger(__name__).error(error_message)
         if DEBUG_LLM_ERRORS:
-            error_message = (
-                "LLM pipeline failed strict JSON/schema validation and returned fallback data. "
-                "Enable logs and inspect the earlier AI ERROR lines in the backend output."
-            )
             print(f"AI ERROR: {error_message}")
-            raise RuntimeError(error_message)
-
-        return schema_model.model_validate(fallback_data).model_dump()
+        raise RuntimeError(error_message)
 
 
 llm_router = LLMRouter()

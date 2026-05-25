@@ -623,12 +623,16 @@ Provide comprehensive structured analysis as JSON."""
         return state
 
     fallback = ResumeAnalysisModel().model_dump()
-    state["resume_analysis"] = llm_router.generate_json(
-        schema_model=ResumeAnalysisModel,
-        system_prompt=system_prompt,
-        user_prompt=user_message,
-        fallback_data=fallback,
-    )
+    try:
+        state["resume_analysis"] = llm_router.generate_json(
+            schema_model=ResumeAnalysisModel,
+            system_prompt=system_prompt,
+            user_prompt=user_message,
+            fallback_data=fallback,
+        )
+    except Exception as exc:
+        logger.error("Resume analyzer Gemini call failed, using local fallback: %s", exc, exc_info=True)
+        state["resume_analysis"] = _resume_analysis_local(resume_text, parsed_resume_data)
     state["resume_data"] = state["resume_analysis"]
     logger.info("Resume analyzer agent completed successfully")
     return state
@@ -696,12 +700,16 @@ Perform a detailed ATS and fit analysis. Return valid JSON only."""
         return state
 
     fallback = JobMatchModel().model_dump()
-    state["job_match"] = llm_router.generate_json(
-        schema_model=JobMatchModel,
-        system_prompt=system_prompt,
-        user_prompt=user_message,
-        fallback_data=fallback,
-    )
+    try:
+        state["job_match"] = llm_router.generate_json(
+            schema_model=JobMatchModel,
+            system_prompt=system_prompt,
+            user_prompt=user_message,
+            fallback_data=fallback,
+        )
+    except Exception as exc:
+        logger.error("Job matcher Gemini call failed, using local fallback: %s", exc, exc_info=True)
+        state["job_match"] = _job_match_local(resume_text, job_description, parsed_job_data, resume_analysis, parsed_resume_data)
     state["ats_result"] = state["job_match"]
     logger.info("Job matcher agent completed successfully")
     return state
@@ -772,13 +780,17 @@ Write a compelling 4-paragraph cover letter tailored to this specific opportunit
     fallback = {
         "cover_letter": "Thank you for considering my application. I bring relevant skills and motivation for this role."
     }
-    result = llm_router.generate_json(
-        schema_model=CoverLetterModel,
-        system_prompt=system_prompt,
-        user_prompt=user_message,
-        fallback_data=fallback,
-    )
-    state["cover_letter"] = result.get("cover_letter", fallback["cover_letter"])
+    try:
+        result = llm_router.generate_json(
+            schema_model=CoverLetterModel,
+            system_prompt=system_prompt,
+            user_prompt=user_message,
+            fallback_data=fallback,
+        )
+        state["cover_letter"] = result.get("cover_letter", fallback["cover_letter"])
+    except Exception as exc:
+        logger.error("Cover letter Gemini call failed, using local fallback: %s", exc, exc_info=True)
+        state["cover_letter"] = _cover_letter_local(resume_text, job_description, parsed_job_data, job_match)
     logger.info("Cover letter agent completed successfully")
     return state
 
@@ -860,14 +872,18 @@ Tailor all questions to this specific candidate and role. Return valid JSON only
         return state
 
     fallback = InterviewQuestionsModel(interview_questions=[]).model_dump()
-    response_data = llm_router.generate_json(
-        schema_model=InterviewQuestionsModel,
-        system_prompt=system_prompt,
-        user_prompt=user_message,
-        fallback_data=fallback,
-    )
+    try:
+        response_data = llm_router.generate_json(
+            schema_model=InterviewQuestionsModel,
+            system_prompt=system_prompt,
+            user_prompt=user_message,
+            fallback_data=fallback,
+        )
+        interview_questions = response_data.get("interview_questions", [])
+    except Exception as exc:
+        logger.error("Interview coach Gemini call failed, using local fallback: %s", exc, exc_info=True)
+        interview_questions = _interview_questions_local(resume_text, job_description, resume_analysis, ats_result, user_history)
 
-    interview_questions = response_data.get("interview_questions", [])
     state["interview_questions"] = interview_questions
     logger.info("Interview coach agent completed successfully")
     return state
