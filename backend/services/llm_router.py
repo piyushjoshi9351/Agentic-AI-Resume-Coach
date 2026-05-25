@@ -11,6 +11,7 @@ DEFAULT_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "45"))
 PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-2.0-flash")
 FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-2.0-flash-lite")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "local").lower()
+DEBUG_LLM_ERRORS = os.getenv("DEBUG_LLM_ERRORS", "false").lower() in {"1", "true", "yes"}
 
 
 def _extract_json(text: str) -> Any:
@@ -70,8 +71,17 @@ class LLMRouter:
 
         try:
             return self._invoke_with_timeout(self.primary, messages, timeout_seconds).content.strip()
-        except Exception:
-            return self._invoke_with_timeout(self.fallback, messages, timeout_seconds).content.strip()
+        except Exception as primary_error:
+            if DEBUG_LLM_ERRORS:
+                print(f"AI ERROR: {primary_error}")
+                raise primary_error
+            try:
+                return self._invoke_with_timeout(self.fallback, messages, timeout_seconds).content.strip()
+            except Exception as fallback_error:
+                if DEBUG_LLM_ERRORS:
+                    print(f"AI ERROR: {fallback_error}")
+                    raise fallback_error
+                raise
 
     def generate_json(
         self,
@@ -106,6 +116,14 @@ class LLMRouter:
                 continue
             except Exception:
                 continue
+
+        if DEBUG_LLM_ERRORS:
+            error_message = (
+                "LLM pipeline failed strict JSON/schema validation and returned fallback data. "
+                "Enable logs and inspect the earlier AI ERROR lines in the backend output."
+            )
+            print(f"AI ERROR: {error_message}")
+            raise RuntimeError(error_message)
 
         return schema_model.model_validate(fallback_data).model_dump()
 

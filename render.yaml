@@ -9,6 +9,8 @@ services:
     envVars:
       - key: AI_PROVIDER
         value: local
+      - key: DEBUG_LLM_ERRORS
+        value: "true"
       - key: JWT_EXPIRE_MINUTES
         value: "120"
       - key: DATABASE_URL
