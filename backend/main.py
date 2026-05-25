@@ -925,6 +925,9 @@ async def analyze_resume_and_job(
         
         # Run the graph synchronously
         result = graph.invoke(analysis_input)
+        print("\n========== RAW GRAPH RESULT ==========")
+        print(result)
+        print("======================================\n")
         
         logger.info("Analysis pipeline completed successfully")
         
