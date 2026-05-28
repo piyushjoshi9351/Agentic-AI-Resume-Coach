@@ -8,8 +8,8 @@ from typing import Any, Type
 from pydantic import BaseModel, ValidationError
 
 DEFAULT_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "45"))
-PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-2.0-flash")
-FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-2.0-flash")
+PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-1.5-flash")
+FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-1.5-flash")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").lower()
 DEBUG_LLM_ERRORS = os.getenv("DEBUG_LLM_ERRORS", "false").lower() in {"1", "true", "yes"}
 
@@ -65,6 +65,17 @@ def _safe_invoke(prompt, fallback_text):
         return fallback_text
 
 
+def _is_quota_error(exc: Exception) -> bool:
+    message = f"{type(exc).__name__}: {exc}".lower()
+    return "resourceexhausted" in message or "429" in message or "quota" in message
+
+
+def _truncate_text(text: str, limit: int = 3000) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "\n\n[TRUNCATED]"
+
+
 def _extract_json(text: str) -> Any:
     cleaned = text.strip()
     if "```json" in cleaned:
@@ -100,6 +111,7 @@ class LLMRouter:
                 temperature=0.3,
                 top_p=0.9,
                 top_k=40,
+                max_output_tokens=512,
             )
             self.fallback = ChatGoogleGenerativeAI(
                 model=FALLBACK_MODEL,
@@ -107,6 +119,7 @@ class LLMRouter:
                 temperature=0.2,
                 top_p=0.9,
                 top_k=40,
+                max_output_tokens=512,
             )
 
     def _invoke_with_timeout(self, model, messages, timeout_seconds: int):
@@ -123,7 +136,7 @@ class LLMRouter:
 
         messages = [
             self._system_message(content=system_prompt),
-            self._human_message(content=user_prompt),
+            self._human_message(content=_truncate_text(user_prompt)),
         ]
 
         try:
@@ -131,6 +144,10 @@ class LLMRouter:
         except Exception as primary_error:
             import logging
             logging.getLogger(__name__).error("Gemini primary model failed: %s", primary_error, exc_info=True)
+            if _is_quota_error(primary_error):
+                if DEBUG_LLM_ERRORS:
+                    print(f"AI ERROR: {primary_error}")
+                return ""
             if DEBUG_LLM_ERRORS:
                 print(f"AI ERROR: {primary_error}")
                 raise primary_error
@@ -139,10 +156,14 @@ class LLMRouter:
             except Exception as fallback_error:
                 import logging
                 logging.getLogger(__name__).error("Gemini fallback model failed: %s", fallback_error, exc_info=True)
+                if _is_quota_error(fallback_error):
+                    if DEBUG_LLM_ERRORS:
+                        print(f"AI ERROR: {fallback_error}")
+                    return ""
                 if DEBUG_LLM_ERRORS:
                     print(f"AI ERROR: {fallback_error}")
                     raise fallback_error
-                raise
+                return ""
 
     def generate_json(
         self,
@@ -186,7 +207,7 @@ class LLMRouter:
         logging.getLogger(__name__).error(error_message)
         if DEBUG_LLM_ERRORS:
             print(f"AI ERROR: {error_message}")
-        raise RuntimeError(error_message)
+        return fallback_data
 
 
 llm_router = LLMRouter()
