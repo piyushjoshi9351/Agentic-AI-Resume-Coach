@@ -8,8 +8,8 @@ from typing import Any, Type
 from pydantic import BaseModel, ValidationError
 
 DEFAULT_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "45"))
-PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-1.5-flash")
-FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-1.5-flash")
+PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-1.5-flash-latest")
+FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-1.5-flash-latest")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").lower()
 DEBUG_LLM_ERRORS = os.getenv("DEBUG_LLM_ERRORS", "false").lower() in {"1", "true", "yes"}
 
@@ -82,6 +82,12 @@ def _extract_json(text: str) -> Any:
         cleaned = cleaned.split("```json", 1)[1].split("```", 1)[0].strip()
     elif "```" in cleaned:
         cleaned = cleaned.split("```", 1)[1].split("```", 1)[0].strip()
+    else:
+        import re
+
+        match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+        if match:
+            cleaned = match.group(0)
     return json.loads(cleaned)
 
 

@@ -27,8 +27,8 @@ class Settings:
     # Google Gemini Configuration
     AI_PROVIDER = os.getenv("AI_PROVIDER", "local").lower()
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    GEMINI_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-1.5-flash")
-    GEMINI_FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-1.5-flash")
+    GEMINI_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-1.5-flash-latest")
+    GEMINI_FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-1.5-flash-latest")
     GEMINI_TEMPERATURE = 0.7
     GEMINI_TOP_P = 0.9
     GEMINI_TOP_K = 40
