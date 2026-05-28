@@ -25,16 +25,22 @@ def _extract_json(text: str) -> Any:
 
 class LLMRouter:
     def __init__(self):
+        self.provider = "local"
         self.primary = None
         self.fallback = None
         if AI_PROVIDER == "gemini":
             api_key = os.getenv("GOOGLE_API_KEY")
             if not api_key:
-                raise ValueError("GOOGLE_API_KEY environment variable not set")
+                import logging
+                logging.getLogger(__name__).warning(
+                    "GOOGLE_API_KEY is not set; Gemini router will run in local fallback mode"
+                )
+                return
 
             from langchain_core.messages import HumanMessage, SystemMessage
             from langchain_google_genai import ChatGoogleGenerativeAI
 
+            self.provider = "gemini"
             self._human_message = HumanMessage
             self._system_message = SystemMessage
             self.primary = ChatGoogleGenerativeAI(
@@ -61,7 +67,7 @@ class LLMRouter:
                 raise TimeoutError(f"LLM call timed out after {timeout_seconds}s") from exc
 
     def generate_text(self, system_prompt: str, user_prompt: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> str:
-        if AI_PROVIDER != "gemini":
+        if self.provider != "gemini":
             raise RuntimeError("Gemini provider disabled; local fallback mode is active")
 
         messages = [
