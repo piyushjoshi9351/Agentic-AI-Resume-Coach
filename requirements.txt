@@ -51,8 +51,8 @@ pdfminer.six>=20221105
 beautifulsoup4
 
 # LLM & agent frameworks referenced in repo
-langgraph==0.0.21
-langchain-core==0.1.16
+langgraph==0.2.60
+langchain-core==0.3.63
 langchain-google-genai==2.0.10
 google-generativeai==0.8.5
 
