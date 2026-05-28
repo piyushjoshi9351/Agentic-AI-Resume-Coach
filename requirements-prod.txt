@@ -18,7 +18,8 @@ alembic==1.11.1
 # Other project deps (un-pinned here; pin as needed)
 langgraph
 langchain-core
-langchain-google-genai
+langchain-google-genai==2.0.10
+google-generativeai==0.8.5
 streamlit
 pypdf
 python-dotenv

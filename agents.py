@@ -4,15 +4,30 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 load_dotenv()
+print("AI PROVIDER:", AI_PROVIDER)
+print("PRIMARY MODEL:", PRIMARY_GEMINI_MODEL)
 
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash",google_api_key=GOOGLE_API_KEY)
 
 
 def _safe_invoke(prompt, fallback_text):
     try:
+        print("\n========== GEMINI INVOKE START ==========\n")
+
         response = llm.invoke(prompt)
+
+        print("\n========== GEMINI RESPONSE ==========\n")
+        print(response)
+        print("\n=====================================\n")
+
         return response.content
-    except Exception:
+
+    except Exception as e:
+        print("\n========== GEMINI ERROR ==========\n")
+        print(type(e).__name__)
+        print(str(e))
+        print("\n==================================\n")
+
         return fallback_text
 
 
