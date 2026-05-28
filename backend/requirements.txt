@@ -52,8 +52,8 @@ beautifulsoup4
 # LLM & agent frameworks referenced in repo
 langgraph==0.0.21
 langchain-core==0.1.16
-langchain-google-genai
-google-generativeai
+langchain-google-genai==2.0.10
+google-generativeai==0.8.5
 
 # Optional runtime/automation
 playwright>=1.40.0
@@ -78,8 +78,8 @@ alembic==1.13.2
 pg8000==1.29.3
 psycopg2-binary==2.9.10
 langgraph==0.0.21
-langchain-core==0.1.16
-langchain-google-genai==0.0.11
+langchain-google-genai==2.0.10
+google-generativeai==0.8.5
 google-generativeai==0.3.0
 python-dotenv==1.0.0
 pydantic==2.5.3

@@ -13,6 +13,57 @@ FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-2.0-flash")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").lower()
 DEBUG_LLM_ERRORS = os.getenv("DEBUG_LLM_ERRORS", "false").lower() in {"1", "true", "yes"}
 
+# Module-level simple Gemini client + safe invoke (debug-friendly)
+import os as _os
+
+# Expose basic env-derived settings for quick debugging
+AI_PROVIDER = _os.getenv("AI_PROVIDER", AI_PROVIDER)
+GOOGLE_API_KEY = _os.getenv("GOOGLE_API_KEY")
+PRIMARY_GEMINI_MODEL = _os.getenv("PRIMARY_GEMINI_MODEL", PRIMARY_MODEL)
+
+print("AI PROVIDER:", AI_PROVIDER)
+print("PRIMARY MODEL:", PRIMARY_GEMINI_MODEL)
+print("GOOGLE_API_KEY EXISTS:", bool(GOOGLE_API_KEY))
+
+llm = None
+try:
+    if AI_PROVIDER == "gemini" and GOOGLE_API_KEY:
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+
+            llm = ChatGoogleGenerativeAI(
+                model=PRIMARY_GEMINI_MODEL,
+                google_api_key=GOOGLE_API_KEY,
+                temperature=0.3,
+            )
+            print("LLM INITIALIZED SUCCESSFULLY")
+        except Exception as _e:
+            print("LLM INIT ERROR:", type(_e).__name__, str(_e))
+            llm = None
+except Exception:
+    llm = None
+
+
+def _safe_invoke(prompt, fallback_text):
+    try:
+        print("\n========== GEMINI INVOKE START ==========")
+
+        response = llm.invoke(prompt) if llm else None
+
+        print("\n========== GEMINI RESPONSE ==========")
+        print(response)
+        print("\n=====================================\n")
+
+        return response.content if response is not None else fallback_text
+
+    except Exception as e:
+        print("\n========== GEMINI ERROR ==========")
+        print(type(e).__name__)
+        print(str(e))
+        print("\n==================================\n")
+
+        return fallback_text
+
 
 def _extract_json(text: str) -> Any:
     cleaned = text.strip()
