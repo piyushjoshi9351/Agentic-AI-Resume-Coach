@@ -8,8 +8,8 @@ from typing import Any, Type
 from pydantic import BaseModel, ValidationError
 
 DEFAULT_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "45"))
-PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-1.5-flash-latest")
-FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-1.5-flash-latest")
+PRIMARY_MODEL = os.getenv("PRIMARY_GEMINI_MODEL", "gemini-2.0-flash")
+FALLBACK_MODEL = os.getenv("FALLBACK_GEMINI_MODEL", "gemini-2.0-flash-lite")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").lower()
 DEBUG_LLM_ERRORS = os.getenv("DEBUG_LLM_ERRORS", "false").lower() in {"1", "true", "yes"}
 
